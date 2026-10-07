@@ -1636,6 +1636,33 @@ sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=awa
   resize();
 })();
 </script>
+ <script>
+// ===== Auto Send Order to Owner WhatsApp =====
+(function(){
+  const form = document.getElementById('checkoutForm');
+  if(!form) return;
+
+  form.addEventListener('submit', function(){
+    const name = this.querySelector('[name="name"]')?.value || '';
+    const phone = this.querySelector('[name="phone"]')?.value || '';
+    const city = this.querySelector('[name="city"]')?.value || '';
+    const address = this.querySelector('[name="address"]')?.value || '';
+
+    setTimeout(() => {
+      const code = document.getElementById('confirmCode')?.innerText || 'New Order';
+      const cust = document.getElementById('receiptCustomer')?.innerText || '';
+      const items = document.getElementById('receiptItems')?.innerText || '';
+      const total = document.getElementById('receiptTotal')?.innerText || document.getElementById('receiptGrand')?.innerText || '';
+
+      const myNum = "923296063123"; // Aapka number
+
+      let msg = `*NEW ORDER - AhmaMart*%0A%0A*Code:* ${code}%0A*Name:* ${name}%0A*Phone:* ${phone}%0A*City:* ${city}%0A*Address:* ${address}%0A%0A${cust}%0A%0A${items}%0A%0A${total}`;
+      
+      window.open(`https://wa.me/${myNum}?text=${msg}`, '_blank');
+    }, 1200);
+  });
+})();
+</script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum!%20Mujhe%20AhmaMart%20Store%20se%20order%20ke%20baray%20me%20maloomat%20chahiye." target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">
