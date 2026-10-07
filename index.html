@@ -719,7 +719,7 @@ img,svg,canvas{max-width:100%}
 <script>
 const fmt = n => 'Rs. ' + Number(n).toLocaleString('en-PK',{maximumFractionDigits:0});
 
-const sb = supabase.createClient('https://efjmrwfvjragklolgkmi.supabase.co','sb_publishable_mcNidnem3tJ42ARChHNP2g_N_EYu_47');
+const sb = supabase.createClient('https://wfdedrzkqtndnqulvpos.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmZGVkcnprcXRuZG5xdWx2cG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzODAzNTksImV4cCI6MjEwNjk1NjM1OX0.iDIzbIP_S7MclPpy5Tn1zh_8mvPNz6IWdnXRfLFNZqc')
 let DB = {categories:[],products:[],orders:[],images:{}};
 let pendingBlob = null;
 const esc = t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
