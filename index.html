@@ -1393,13 +1393,27 @@ function openCustDetail(i){
   const c = window._custList[i]; if(!c) return;
   document.getElementById('custDetailName').textContent = c.name;
   document.getElementById('custDetailPhone').textContent = c.phone + ' · ' + c.orders.length + ' order' + (c.orders.length===1?'':'s') + ' · ' + fmt(c.total) + ' total';
-  document.getElementById('custDetailBody').innerHTML = c.orders.map(o=>`
-    <tr>
-      <td>${esc(o.code)}</td>
-      <td>${o.created_at?new Date(o.created_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
-      <td style="max-width:200px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
-      <td>${fmt(o.subtotal)}</td><td>${esc(o.status)}</td>
-    </tr>`).join('');
+ document.getElementById('custDetailBody').innerHTML = c.orders.map(o=>`
+  <tr>
+    <td>${esc(o.code)}</td>
+    <td>${o.created_at?new Date(o.created_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'}):''}</td>
+    <td style="max-width:250px;">
+      <div style="display:flex; flex-direction:column; gap:8px">
+        ${o.items.map(i=>`
+          <div style="display:flex; align-items:center; gap:8px; background:var(--bg-soft); padding:4px 6px; border-radius:6px">
+            <img src="${i.image || i.img || ''}" onerror="this.src='https://via.placeholder.com/40'" style="width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid var(--line)">
+            <div style="font-size:.82rem; line-height:1.2">
+              <b>${esc(i.name)}</b><br>
+              <span style="color:var(--ink-soft)">Qty: ${i.qty || 1} - ${i.variant || ''}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </td>
+    <td>${fmt(o.subtotal)}</td>
+    <td>${esc(o.status)}</td>
+    <td>${renderOtpCell(o)}</td>
+  </tr>`).join('');
   openM(document.getElementById('custDetailOverlay'));
 }
 function renderOtpCell(o){
