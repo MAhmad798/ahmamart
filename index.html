@@ -1332,20 +1332,35 @@ document.getElementById('infoClose').addEventListener('click',()=>closeM(infoOve
 const OTP_SMS_ENDPOINT = '';         // optional: your backend URL that sends real SMS, e.g. 'https://yourserver.com/send-otp'
 
 function itemsSummary(items){
-  if(!Array.isArray(items) || !items.length) return '—';
-  return items.map(it=>`${esc(it.name)} ×${it.qty}`).join(', ');
+ if(!Array.isArray(items) ||!items.length) return '—';
+ return items.map(it=>{
+   let img = it.image || it.img || it.product_image || '';
+   // Products list se tasveer dhoondho
+   try{
+     let all = DB.products || [];
+     let f = all.find(p => p.id == it.product_id || p.id == it.pid || p.name == it.name);
+     if(f){
+       img = f.image || f.img || f.thumbnail || (f.images && f.images[0]) || f.main_image || img;
+     }
+   }catch(e){}
+   return `<span style="display:inline-flex;align-items:center;gap:6px;background:#2a3447;padding:4px 8px;border-radius:8px;margin:2px;border:1px solid #3a475e">
+     <img src="${img}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;background:#fff" onerror="this.src='https://via.placeholder.com/32?text=?'">
+     <span style="font-size:.82rem;color:#fff">${esc(it.name)} ×${it.qty}</span>
+   </span>`;
+ }).join(' ');
 }
+
 function renderOrdAdmin(){
-  document.getElementById('ordBody').innerHTML = DB.orders.length ? [...DB.orders].reverse().map(o=>`
-    <tr>
-      <td>${esc(o.code)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td>
-      <td style="max-width:220px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
-      <td>${fmt(o.subtotal)}</td>
-      <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
-        ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
-      </select></td>
-      <td>${renderOtpCell(o)}</td>
-    </tr>`).join('') : `<tr><td colspan="7" style="color:var(--ink-soft)">No orders yet.</td></tr>`;
+ document.getElementById('ordBody').innerHTML = DB.orders.length? [...DB.orders].reverse().map(o=>`
+   <tr>
+     <td>${esc(o.code)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td>
+     <td style="max-width:280px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
+     <td>${fmt(o.subtotal)}</td>
+     <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
+       ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s==o.status?'selected':''}>${s}</option>`).join('')}
+     </select></td>
+     <td>${renderOtpCell(o)}</td>
+   </tr>`).join('') : `<tr><td colspan="7" style="color:var(--ink-soft)">No orders yet.</td></tr>`;
 }
 
 /* Group every order by phone number into a per-customer history */
