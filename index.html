@@ -87,8 +87,6 @@ body{margin:0;background:transparent;color:var(--ink);font-family:'Inter',system
 .btn:active{transform:translateY(0)}
 .nitem{transition:background .15s,color .15s,border-color .15s,transform .1s}
 .nitem:hover{transform:translateX(4px)}
-.otp-display{animation:shimmer 2s ease-in-out infinite}
-#otpSuccessOverlay .modal div:first-child{animation:bounceIn .6s ease both}
 .stat{animation:fadeInUp .4s ease both;transition:transform .2s,box-shadow .2s}
 .stat:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(35,75,62,.12)}
 #bg-canvas{animation:floatBg 18s ease-in-out infinite}
@@ -208,14 +206,6 @@ th{background:var(--gold-soft);font-size:.72rem;text-transform:uppercase;color:v
 .img-tabs{display:flex;gap:6px;margin-bottom:10px}
 .img-tab{flex:1;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-soft);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s}
 .img-tab.on{background:var(--pine);color:#fff;border-color:var(--pine)}
-/* OTP */
-.otp-box{display:flex;gap:10px;justify-content:center;margin:18px 0}
-.otp-box input{width:44px;height:54px;text-align:center;font-size:1.4rem;font-weight:700;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);outline:none;transition:border-color .2s}
-.otp-box input:focus{border-color:var(--pine)}
-.otp-display{font-family:'Fraunces',serif;font-size:2.2rem;letter-spacing:8px;color:var(--pine);text-align:center;padding:10px;background:var(--gold-soft);border-radius:10px;margin:12px 0}
-.otp-badge{display:inline-block;background:#E3DEF5;color:#5A3D9E;padding:3px 12px;border-radius:999px;font-size:.78rem;font-weight:700;margin-left:8px}
-.admin-otp-row{background:var(--gold-soft);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.85rem}
-
 /* ===== WhatsApp Floating Button ===== */
 .wa-float{position:fixed;right:20px;bottom:22px;z-index:40;display:flex;align-items:center;gap:10px;text-decoration:none;animation:waEnter .7s cubic-bezier(.2,1.4,.4,1) both .6s}
 .wa-btn{position:relative;width:60px;height:60px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(37,211,102,.45);animation:waBounce 2.6s ease-in-out infinite 2s;transition:transform .2s}
@@ -324,9 +314,6 @@ img,svg,canvas{max-width:100%}
   .drawer{max-width:100%}
   .modal-overlay{padding:14px 10px;align-items:flex-start}
   .modal{padding:18px 16px;border-radius:12px}
-  .otp-box{gap:6px}
-  .otp-box input{width:100%;max-width:44px;height:50px;font-size:1.25rem}
-  .otp-display{font-size:1.7rem;letter-spacing:5px}
   #receiptCard{padding:12px!important}
   .stat .n{font-size:1.25rem}
   .logincard{padding:24px 18px}
@@ -401,7 +388,6 @@ img,svg,canvas{max-width:100%}
     <div class="hact">
       <button class="link" id="trackBtn">Track order</button>
       <button class="link" id="myOrdersBtn">My orders</button>
-      <button class="link" id="otpConfirmBtn" style="color:var(--ok)">✓ Confirm delivery</button>
       <button class="link" id="adminLinkBtn">Admin</button>
       <button class="iconbtn" id="cartBtn">🛒<span class="badge" id="cartCount">0</span></button>
     </div>
@@ -470,7 +456,8 @@ img,svg,canvas{max-width:100%}
     <div id="checkoutMsg"></div>
     <form id="checkoutForm">
       <div class="field"><label>Full name</label><input required name="name"></div>
-      <div class="field"><label>Phone number</label><input required name="phone" placeholder="03XXXXXXXXX"></div>
+      <div class="field"><label>Phone number</label><input required name="phone" type="tel" autocomplete="tel" placeholder="03XXXXXXXXX"></div>
+      <div class="field"><label>Email address</label><input required name="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
       <div class="field"><label>City</label><input name="city"></div>
       <div class="field"><label>Full delivery address</label><textarea required name="address"></textarea></div>
       <button class="btn" type="submit">Place order — Cash on Delivery</button>
@@ -505,55 +492,12 @@ img,svg,canvas{max-width:100%}
       </div>
       <div style="margin-top:10px;background:var(--pine);color:#fff;border-radius:8px;padding:8px 12px;font-size:.8rem;font-weight:700;text-align:center">💵 Cash on Delivery</div>
     </div>
-    <div style="border:2px solid var(--pine);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center;background:var(--gold-soft)">
-      <div style="font-size:.78rem;font-weight:700;color:var(--ink-soft)">🔐 AAPKA DELIVERY OTP</div>
-      <div class="otp-display" id="receiptOtp" style="margin:6px 0"></div>
-      <div style="font-size:.76rem;color:var(--ink-soft);line-height:1.5">Isay screenshot ya receipt download kar ke mehfooz rakhein. Order milne par hi delivery boy ko batayein.</div>
-    </div>
     <a class="btn" id="sendOrderWa" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;background:#25D366;margin-bottom:8px">💬 Order store ko WhatsApp par bhejein</a>
     <p style="color:var(--ink-soft);font-size:.8rem;text-align:center;margin-bottom:12px">Yeh code apne paas rakhein — order track karne ke liye zaroori hai</p>
     <div style="display:flex;gap:8px">
       <button class="btn" id="confirmDone" style="flex:1;background:var(--pine)">Done</button>
       <button class="btn" id="downloadReceiptBtn" style="flex:1;background:var(--gold)">⬇ Receipt Photo Download</button>
     </div>
-  </div>
-</div>
-
-<!-- OTP Delivery Confirmation Modal (Customer side) -->
-<div class="modal-overlay" id="otpConfirmOverlay">
-  <div class="modal">
-    <button class="mclose" id="otpConfirmClose">&times;</button>
-    <div style="text-align:center;margin-bottom:12px">
-      <div style="font-size:2.5rem">📦</div>
-      <h3 style="color:var(--pine);margin-top:8px">Delivery Confirm karein</h3>
-      <p style="color:var(--ink-soft);font-size:.88rem;margin-top:6px">
-        Apna order code aur phone number daalo. Agar aapka OTP kho gaya ho to yahan dobara dekh sakte hain.
-      </p>
-    </div>
-    <div id="otpConfirmMsg"></div>
-    <form id="otpLookupForm">
-      <div class="field"><label>Order Code</label><input required name="code" placeholder="USW-XXXXX"></div>
-      <div class="field"><label>Phone Number</label><input required name="phone" placeholder="03XXXXXXXXX"></div>
-      <button class="btn" type="submit">Mera OTP Dekhein</button>
-    </form>
-    <div id="otpVerifySection" style="display:none;margin-top:16px">
-      <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-      <p style="font-size:.85rem;color:var(--ink-soft);text-align:center">Aapka delivery OTP:</p>
-      <div class="otp-display" id="customerOtpDisplay"></div>
-      <p style="font-size:.8rem;color:var(--ink-soft);text-align:center;line-height:1.5">
-        Yeh OTP sirf aapke liye hai. Jab aapko order mil jaye tabhi delivery boy ko batayein — aur kisi ko nahin.
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- OTP Verified Success Modal -->
-<div class="modal-overlay" id="otpSuccessOverlay">
-  <div class="modal" style="text-align:center">
-    <div style="font-size:3rem;margin-bottom:10px">✅</div>
-    <h3 style="color:var(--ok)">Order Deliver Ho Gaya!</h3>
-    <p style="color:var(--ink-soft);margin-top:8px;font-size:.9rem">Aapka order successfully deliver ho gaya hai. Shukriya AhmaMart se shopping karne ka!</p>
-    <button class="btn" style="margin-top:18px;background:var(--pine)" id="otpSuccessDone">Done</button>
   </div>
 </div>
 
@@ -629,17 +573,7 @@ img,svg,canvas{max-width:100%}
       </section>
       <section id="tab-ord" style="display:none">
         <h2 style="margin-bottom:16px">Orders</h2>
-        <form id="quickOtpForm" onsubmit="quickVerifyOtp(event)" style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px">
-          <div style="font-weight:700;margin-bottom:8px">🔐 Delivery OTP verify karein</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-            <input name="code" placeholder="Order code USW-XXXXX" required style="padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
-            <input name="phone" placeholder="Customer phone" required style="padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
-            <input name="otp" placeholder="Customer ka OTP" inputmode="numeric" maxlength="6" required style="padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);letter-spacing:2px">
-            <button class="addp" type="submit">Verify</button>
-          </div>
-          <div id="quickOtpMsg" style="margin-top:8px"></div>
-        </form>
-        <table><thead><tr><th>Code</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th><th>Status</th><th>OTP</th></tr></thead><tbody id="ordBody"></tbody></table>
+        <table><thead><tr><th>Code</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody id="ordBody"></tbody></table>
       </section>
       <section id="tab-cust" style="display:none">
         <h2 style="margin-bottom:16px">Customers</h2>
@@ -911,7 +845,7 @@ const closeCart=()=>{overlay.classList.remove('on');cartDrawer.classList.remove(
 document.getElementById('cartBtn').addEventListener('click',openCart);
 document.getElementById('cartCloseBtn').addEventListener('click',closeCart);
 const openM=el=>el.classList.add('on'), closeM=el=>el.classList.remove('on');
-overlay.addEventListener('click',()=>{closeCart();[checkoutOverlay,trackOverlay,confirmOverlay,otpConfirmOverlay,otpSuccessOverlay].forEach(closeM);});
+overlay.addEventListener('click',()=>{closeCart();[checkoutOverlay,trackOverlay,confirmOverlay].forEach(closeM);});
 
 const checkoutOverlay=document.getElementById('checkoutOverlay');
 document.getElementById('checkoutBtn').addEventListener('click',()=>{ if(cart.length===0) return; closeCart(); openM(checkoutOverlay); });
@@ -956,13 +890,20 @@ document.getElementById('myOrdersForm').addEventListener('submit', e=>{
 document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const f=e.target, msg=document.getElementById('checkoutMsg'); msg.innerHTML='';
-  const name=f.name.value.trim(), phone=f.phone.value.trim(), address=f.address.value.trim(), city=f.city.value.trim();
+  const name=f.name.value.trim(), phone=f.phone.value.trim(), email=f.email.value.trim(), address=f.address.value.trim(), city=f.city.value.trim();
+  if(!name || !email || !address){ msg.innerHTML='<div class="msg err">Please fill in your name, email, and delivery address.</div>'; return; }
   if(!/^[0-9+\-\s()]{7,20}$/.test(phone)){ msg.innerHTML='<div class="msg err">Enter a valid phone number</div>'; return; }
   const btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
-  const {data:res,error}=await sb.rpc('place_order',{p_name:name,p_phone:phone,p_address:address,p_city:city,p_items:cart.map(i=>({product_id:i.id,qty:i.qty}))});
+  const orderArgs={p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:cart.map(i=>({product_id:i.id,qty:i.qty}))};
+  let {data:res,error}=await sb.rpc('place_order',orderArgs);
+  // Backward compatibility: older Supabase place_order functions may not yet accept p_email.
+  if(error && /function|schema cache|p_email|could not find/i.test(error.message||'')){
+    const {data:legacyRes,error:legacyError}=await sb.rpc('place_order',{p_name:name,p_phone:phone,p_address:address,p_city:city,p_items:cart.map(i=>({product_id:i.id,qty:i.qty}))});
+    if(!legacyError){ res=legacyRes; error=null; }
+  }
   if(btn) btn.disabled=false;
   if(error){ msg.innerHTML=`<div class="msg err">${esc(error.message)}</div>`; await loadPublic(); renderGrid(); return; }
-  const code=res.code, order={items:res.items,subtotal:Number(res.subtotal),delivery_otp:res.otp};
+  const code=res.code, order={items:res.items,subtotal:Number(res.subtotal)};
   await loadPublic();
   cart=[]; saveCart(); renderCart(); renderGrid();
   f.reset(); closeM(checkoutOverlay);
@@ -970,18 +911,15 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   document.getElementById('confirmCode').textContent = code;
   document.getElementById('receiptDate').textContent = new Date().toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'});
   document.getElementById('receiptCustomer').innerHTML =
-    `<div>👤 ${esc(name)}</div><div>📞 ${esc(phone)}</div><div>📍 ${esc(address)}${city?', '+esc(city):''}</div>`;
+    `<div>👤 ${esc(name)}</div><div>📞 ${esc(phone)}</div><div>✉️ ${esc(email)}</div><div>📍 ${esc(address)}${city?', '+esc(city):''}</div>`;
   document.getElementById('receiptItems').innerHTML = order.items.map(i=>
     `<div style="display:flex;justify-content:space-between"><span>${i.qty}× ${esc(i.name)}</span><span>${fmt(i.price*i.qty)}</span></div>`
   ).join('');
   document.getElementById('receiptTotal').textContent = fmt(order.subtotal);
-  document.getElementById('receiptOtp').textContent = order.delivery_otp;
-  // WhatsApp: customer sends the order to the store (OTP is NOT included)
+  // WhatsApp: customer sends the order details to the store
   const lines = order.items.map(i=>`• ${i.qty}× ${i.name} — ${fmt(i.price*i.qty)}`).join('\n');
-  const waText = `Assalam o Alaikum! Naya order:\nOrder Code: ${code}\nNaam: ${name}\nPhone: ${phone}\nAddress: ${address}${city?', '+city:''}\n${lines}\nTotal: ${fmt(order.subtotal)} (Cash on Delivery)`;
+  const waText = `Assalam o Alaikum! Naya order:\nOrder Code: ${code}\nNaam: ${name}\nPhone: ${phone}\nEmail: ${email}\nAddress: ${address}${city?', '+city:''}\n${lines}\nTotal: ${fmt(order.subtotal)} (Cash on Delivery)`;
   document.getElementById('sendOrderWa').href = 'https://wa.me/'+STORE_WA+'?text='+encodeURIComponent(waText);
-  // Optional real SMS through your own backend
-  if(OTP_SMS_ENDPOINT){ try{ fetch(OTP_SMS_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,code,otp:order.delivery_otp})}).catch(()=>{}); }catch(e){} }
   try{
     localStorage.setItem('usw_last_phone', phone);
     const mine = JSON.parse(localStorage.getItem('usw_my_orders')||'[]');
@@ -997,7 +935,6 @@ function downloadReceipt(){
   const code   = document.getElementById('confirmCode').textContent;
   const date   = document.getElementById('receiptDate').textContent;
   const total  = document.getElementById('receiptTotal').textContent;
-  const otp    = document.getElementById('receiptOtp').textContent;
   const custLines = document.getElementById('receiptCustomer').innerText.trim().split('\n').map(l=>l.trim()).filter(Boolean);
   const rows = [...document.getElementById('receiptItems').children].map(d=>{
     const sp = d.querySelectorAll('span');
@@ -1059,16 +996,6 @@ function downloadReceipt(){
     y += 28;
     T('Total', X0, y, `800 17px ${SANS}`, '#000000'); T(total, X1, y, `800 17px ${SANS}`, '#000000', 'right');
     y += 26;
-
-    // OTP box
-    const oh = 92;
-    if(!dry){ ctx.fillStyle='#f2f2f2'; rr(ctx,X0,y,CW,oh,12); ctx.fill(); ctx.strokeStyle='#000000'; ctx.lineWidth=2; rr(ctx,X0,y,CW,oh,12); ctx.stroke(); }
-    T('DELIVERY OTP  -  sirf order milne par batayein', W/2, y+24, `700 11px ${SANS}`, '#5b564d', 'center');
-    // digits spaced out
-    ctx.font = `700 38px ${SERIF}`; const gap = 14, dw = [...otp].map(ch=>ctx.measureText(ch).width);
-    let tw = dw.reduce((a,b)=>a+b,0) + gap*(otp.length-1), dx = W/2 - tw/2;
-    [...otp].forEach((ch,i)=>{ T(ch, dx, y+66, `700 38px ${SERIF}`, '#000000'); dx += dw[i] + gap; });
-    y += oh + 16;
 
     // COD
     if(!dry){ ctx.fillStyle='#000000'; rr(ctx,X0,y,CW,44,10); ctx.fill(); }
@@ -1295,7 +1222,7 @@ document.getElementById('prodForm').addEventListener('submit',async e=>{
 async function deleteProd(id){ if(!confirm('Remove this product?')) return; const r=await sb.from('products').delete().eq('id',id); if(r.error){ alert(r.error.message); return; } await loadPublic(); renderProdAdmin(); renderStats(); renderGrid(); }
 
 function samePhone(a,b){ const n=x=>String(x||'').replace(/\D/g,'').slice(-10); return n(a).length>=7 && n(a)===n(b); }
-/* ===== OTP CONFIG ===== */
+/* ===== STORE CONFIG ===== */
 const STORE_WA = '923296063123';     // store WhatsApp number (owner receives orders here)
 
 /* ===== Footer info pages ===== */
@@ -1310,7 +1237,6 @@ const INFO_PAGES = {
     <p><strong>How does Cash on Delivery work?</strong><br>You pay in cash when your order is delivered to your door — nothing is charged online.</p>
     <p><strong>How long does delivery take?</strong><br>Most orders arrive within 2–5 business days, depending on your city.</p>
     <p><strong>How do I track my order?</strong><br>Use "Track order" or "My orders" at the top of the site with your order code and phone number.</p>
-    <p><strong>What is the delivery OTP?</strong><br>A one-time code sent to confirm you received your package. Share it with the delivery person only once the order is in your hands.</p>
     <p><strong>Can I cancel my order?</strong><br>Yes, as long as it hasn't been dispatched yet. Contact us with your order code and we'll help right away.</p>` },
   contact: { title:'Contact Us', html:`
     <p>We'd love to hear from you — questions, order help, or feedback, reach out any time.</p>
@@ -1331,7 +1257,7 @@ const INFO_PAGES = {
     <p>Items must be unused and in their original packaging to be eligible for return, unless the issue is a defect or wrong item received.</p>` },
   privacy: { title:'Privacy Policy', html:`
     <p>We collect only the information needed to process your order: your name, phone number, and delivery address.</p>
-    <p>This information is used solely to fulfil and deliver your order, confirm delivery with your OTP, and contact you if there's an issue with your order.</p>
+    <p>This information is used solely to fulfil and deliver your order, contact you if there's an issue with your order.</p>
     <p>We do not sell or share your personal information with third parties, other than the courier needed to deliver your package.</p>
     <p>If you have any questions about how your information is handled, contact us at <a href="mailto:abu798baker@gmail.com" style="color:var(--gold)">abu798baker@gmail.com</a>.</p>` },
   terms: { title:'Terms of Service', html:`
@@ -1350,7 +1276,6 @@ function openInfo(key){
 }
 document.querySelectorAll('[data-info]').forEach(b=>b.addEventListener('click',()=>openInfo(b.dataset.info)));
 document.getElementById('infoClose').addEventListener('click',()=>closeM(infoOverlay));
-const OTP_SMS_ENDPOINT = '';         // optional: your backend URL that sends real SMS, e.g. 'https://yourserver.com/send-otp'
 
 function itemsSummary(items){
   if(!Array.isArray(items) || !items.length) return '—';
@@ -1379,8 +1304,7 @@ function renderOrdAdmin(){
       <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
         ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
       </select></td>
-      <td>${renderOtpCell(o)}</td>
-    </tr>`).join('') : `<tr><td colspan="7" style="color:var(--ink-soft)">No orders yet.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="6" style="color:var(--ink-soft)">No orders yet.</td></tr>`;
 }
 
 /* Group every order by phone number into a per-customer history */
@@ -1422,47 +1346,7 @@ function openCustDetail(i){
     </tr>`).join('');
   openM(document.getElementById('custDetailOverlay'));
 }
-function renderOtpCell(o){
-  if(o.status==='delivered' && o.otp_verified){
-    return `<span style="color:var(--ok);font-weight:700;font-size:.82rem">✅ Verified</span>`;
-  }
-  if(o.status==='cancelled') return `<span style="color:var(--ink-soft);font-size:.78rem">—</span>`;
-  return `<div style="display:flex;gap:6px;align-items:center">
-      <input id="otpin-${o.id}" inputmode="numeric" maxlength="6" placeholder="Customer OTP" autocomplete="off"
-        style="width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);letter-spacing:2px;font-weight:700">
-      <button class="sm" onclick="verifyOtpAdmin(${o.id})" style="background:var(--pine);color:#fff;border-color:var(--pine)">Verify</button>
-    </div>`;
-}
-
-async function verifyOtpAdmin(id){
-  const o = DB.orders.find(o=>o.id===id); if(!o) return;
-  const inp = document.getElementById('otpin-'+id);
-  const v = (inp.value||'').replace(/\D/g,'');
-  if(v.length!==6){ alert('Customer se poora 6-digit OTP lein.'); inp.focus(); return; }
-  const {data:ok,error}=await sb.rpc('admin_verify_otp',{p_code:o.code,p_phone:o.phone,p_otp:v});
-  if(error){ alert(error.message); return; }
-  if(!ok){ alert('❌ OTP galat hai. Customer se dobara poochein.'); inp.value=''; inp.focus(); return; }
-  await loadOrders(); renderOrdAdmin(); renderStats();
-  alert('✅ OTP sahi hai. Order '+o.code+' deliver mark ho gaya.');
-}
-
-/* Owner: verify any order by code + phone + OTP (works even if order was placed from customer's phone) */
-async function quickVerifyOtp(e){
-  e.preventDefault();
-  const f=e.target, box=document.getElementById('quickOtpMsg');
-  const code=f.code.value.trim().toUpperCase(), phone=f.phone.value.trim(), otp=f.otp.value.replace(/\D/g,'');
-  const {data:ok,error}=await sb.rpc('admin_verify_otp',{p_code:code,p_phone:phone,p_otp:otp});
-  if(error||!ok){ box.innerHTML='<div class="msg err">❌ OTP galat hai (ya code / phone galat hai).</div>'; return; }
-  await loadOrders(); renderOrdAdmin(); renderStats();
-  box.innerHTML='<div class="msg" style="background:#e1f0e5;color:var(--ok)">✅ OTP sahi hai — '+esc(code)+' ki delivery confirm ho gayi.</div>';
-  f.reset();
-}
-
 async function updateStatus(id,status){
-  const o = DB.orders.find(o=>o.id===id);
-  if(status==='delivered' && !o.otp_verified){
-    if(!confirm('OTP verify nahin hua!\nKya phir bhi "delivered" mark karna chahte hain?')){ renderOrdAdmin(); return; }
-  }
   const r=await sb.from('orders').update({status}).eq('id',id); if(r.error) alert(r.error.message);
   await loadOrders(); renderOrdAdmin(); renderStats();
 }
@@ -1541,39 +1425,6 @@ uploadArea.addEventListener('drop', e=>{
   e.preventDefault(); uploadArea.classList.remove('drag');
   applyUploadedImage(e.dataTransfer.files[0]);
 });
-
-/* ===== OTP DELIVERY CONFIRMATION ===== */
-const otpConfirmOverlay = document.getElementById('otpConfirmOverlay');
-const otpSuccessOverlay = document.getElementById('otpSuccessOverlay');
-
-document.getElementById('otpConfirmBtn').addEventListener('click', ()=> openM(otpConfirmOverlay));
-document.getElementById('otpConfirmClose').addEventListener('click', ()=>{ closeM(otpConfirmOverlay); resetOtpModal(); });
-document.getElementById('otpSuccessDone').addEventListener('click', ()=> closeM(otpSuccessOverlay));
-
-document.getElementById('otpLookupForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const f = e.target;
-  const msg = document.getElementById('otpConfirmMsg');
-  const sec = document.getElementById('otpVerifySection');
-  msg.innerHTML = ''; sec.style.display='none';
-
-  const code = f.code.value.trim().toUpperCase();
-  const phone = f.phone.value.trim();
-  const {data:t}=await sb.rpc('get_customer_otp',{p_code:code,p_phone:phone});
-  const order=t&&{status:t.status,otp_verified:t.otp_verified,otp:t.otp};
-
-  if(!order){ msg.innerHTML='<div class="msg err">Order nahin mila. Code ya phone number check karein.</div>'; return; }
-  if(order.status==='cancelled'){ msg.innerHTML='<div class="msg err">Yeh order cancel ho chuka hai.</div>'; return; }
-  if(order.status==='delivered' && order.otp_verified){ msg.innerHTML='<div class="msg err" style="background:#e1f0e5;color:var(--ok)">✅ Aapka order deliver ho chuka hai. Shukriya!</div>'; return; }
-  document.getElementById('customerOtpDisplay').textContent = order.otp;
-  sec.style.display='block';
-});
-
-function resetOtpModal(){
-  document.getElementById('otpLookupForm').reset();
-  document.getElementById('otpConfirmMsg').innerHTML='';
-  document.getElementById('otpVerifySection').style.display='none';
-}
 
 /* ============================= */
 document.getElementById('grid').innerHTML='<p style="padding:24px;text-align:center;opacity:.7">Loading products…</p>';
