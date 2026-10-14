@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>AhmaMart</title>
+ <title>AhmaMart | Everyday Essentials</title>
  
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-082HB3GNF1"></script>
@@ -42,7 +42,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#686666;--surface:rgb(56, 55, 55);--ink:#ffffff;--ink-soft:#a8a8a8;--line:#2a2a2a;--pine:#d51d1d;--pine-dark:#1a1a1a;--gold:rgb(248, 152, 7);--gold-soft:#1a1a1a;
+  --bg:#686666;--surface:rgb(56, 55, 55);--ink:#080808;--ink-soft:#a8a8a8;--line:#2a2a2a;--pine:#d51d1d;--pine-dark:#1a1a1a;--gold:rgb(248, 152, 7);--gold-soft:#1a1a1a;
 }}
 :root[data-theme="dark"]{--bg:#000000;--surface:#0d0d0d;--ink:#ffffff;--ink-soft:#a8a8a8;--line:#2a2a2a;--pine:#ffffff;--pine-dark:#1a1a1a;--gold:#ffffff;--gold-soft:#1a1a1a;}
 *{box-sizing:border-box}
@@ -371,6 +371,41 @@ img,svg,canvas{max-width:100%}
     zoom: 100% !important;
   }
 }
+
+/* AhmaMart premium storefront refresh */
+:root{--bg:#f8f6f1;--surface:#fffefa;--ink:#24251f;--ink-soft:#706f66;--line:#e7e1d6;--pine:#263c32;--pine-dark:#172b23;--gold:#a57d4d;--gold-soft:#f0e9dc;--radius:3px}
+body{background:var(--bg);color:var(--ink)}
+#bg-overlay{background:var(--bg)}
+.announcement-bar{min-height:34px;padding:8px 20px;background:#20372d;color:#f8f4ec;display:flex;justify-content:center;align-items:center;gap:26px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+.announcement-bar a{color:#e9d3ad;text-decoration:none;font-weight:700}
+.hdr{background:rgba(255,254,250,.97);border-bottom:1px solid #e8e2d7;backdrop-filter:blur(12px)}
+.hdr-row{max-width:1440px;padding:17px 30px;gap:30px}
+.brand{font-size:1.8rem;letter-spacing:-1.2px;color:#20372d}.brand span{color:#a57d4d}
+.search{border-radius:2px;background:#f7f4ee;border-color:#e7e0d4;padding:11px 15px;max-width:510px}
+.search input{font-size:13px}.link{color:#35473c;font-size:11px;letter-spacing:.4px;text-transform:uppercase}
+.iconbtn{border-radius:2px;background:#20372d;color:white;border-color:#20372d}
+.badge{background:#b58b5a;color:#fff}
+.chips{max-width:1440px;gap:0;padding:0 24px 0;justify-content:center;overflow-x:auto}
+.chip{border:0;border-radius:0;background:transparent;color:#4c5149;padding:13px 16px;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.chip.on,.chip:hover{background:transparent;color:#9c7346;box-shadow:inset 0 -2px #a57d4d;transform:none}
+.lux-hero{max-width:1440px;margin:0 auto;padding:34px 30px 30px;display:grid;grid-template-columns:.86fr 1.14fr;gap:28px;min-height:520px}
+.lux-hero-copy{padding:52px 16px 36px 5%;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:2.1px;color:#9b7449;text-transform:uppercase;display:block;margin-bottom:16px}
+.lux-hero h1,.editorial-copy h2,.sale-band h2{font-size:clamp(42px,5vw,68px);line-height:1.02;letter-spacing:-2px;color:#24392f;font-weight:600}
+.lux-hero h1 em,.editorial-copy h2 em,.sale-band h2 em{font-weight:600;color:#a17c52}
+.lux-hero-copy>p{max-width:410px;color:#77756b;line-height:1.85;font-size:14px;margin:22px 0 26px}
+.hero-actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.hero-cta,.sale-cta{display:inline-flex;align-items:center;gap:26px;padding:15px 20px;background:#24392f;color:#fff;text-decoration:none;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;border:1px solid #24392f;transition:.2s}.hero-cta:hover,.sale-cta:hover{background:#a17c52;border-color:#a17c52;transform:translateY(-2px)}.hero-text-link,.section-link{color:#35483d;text-decoration:none;border-bottom:1px solid #b49b7b;padding-bottom:5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.hero-proof{display:flex;flex-wrap:wrap;gap:15px;margin-top:36px;color:#77766d;font-size:10px}.lux-hero-image{position:relative;min-height:440px;background:#ddd0bd url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=85') center/cover no-repeat}.hero-image-note{position:absolute;right:20px;bottom:20px;padding:17px 20px;background:rgba(255,254,250,.94);min-width:200px}.hero-image-note span{font-size:9px;letter-spacing:2px;color:#a17c52;display:block;margin-bottom:7px}.hero-image-note strong{font-family:'Fraunces',serif;font-size:19px;color:#24392f}
+.hero.container{max-width:1440px;padding:8px 30px 16px}.hero.container h1{font-size:13px!important;color:#6e7068!important;font-family:'Inter',sans-serif;font-weight:500;letter-spacing:.1px}.hero.container p{font-size:11px;margin-top:4px}
+.cat-blocks{max-width:1440px;padding:20px 30px 44px}.cb-title{font-size:26px;color:#263c32;margin:0 0 20px}.cb-row{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}.cb-tile{border-radius:2px;background:#fffefa;border-color:#e8e1d6;min-height:124px;padding:22px 12px}.cb-tile:hover{border-color:#ad8a5f;box-shadow:0 9px 22px #24392f12}.cb-ico{font-size:25px}.cb-name{font-size:12px;text-align:center;color:#273a30}.cb-count{font-size:10px}
+.featured-wrap{max-width:1440px;margin:0 auto;padding:22px 30px 50px}.section-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:24px}.section-intro h2,.catalog-heading h2,.faq-section h2,.reviews-section h2,.newsletter-section h2{font-family:'Fraunces',serif;font-size:clamp(27px,3vw,38px);font-weight:600;color:#24392f;letter-spacing:-.7px}.section-intro p,.catalog-heading p{font-size:12px;color:#77766d;margin:8px 0 0}.featured-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.featured-grid .card{border:0;border-radius:0;background:transparent;box-shadow:none}.featured-grid .card:hover{transform:translateY(-3px);box-shadow:none}.featured-grid .cimg{aspect-ratio:4/4.4;background:#eee8de}.featured-grid .cbody{padding:12px 1px;gap:7px}.featured-grid .ccat{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#8a826f}.featured-grid .cname{font-family:'Fraunces',serif;font-weight:600;font-size:16px;color:#293a30}.featured-grid .price{font-size:13px;color:#283c31}.featured-grid .pcompare{font-size:11px}.featured-grid .addbtn{background:transparent;color:#2b3e33;border:1px solid #d8d0c2;border-radius:0;padding:11px;text-transform:uppercase;letter-spacing:.8px;font-size:9px}.featured-grid .addbtn:hover{background:#263c32;color:white}.featured-grid .cimg img{transition:transform .5s}.featured-grid .card:hover .cimg img{transform:scale(1.04)}
+.sale-band{max-width:1380px;margin:0 auto 32px;padding:46px 54px;background:#e9e1d4;display:flex;align-items:center;justify-content:space-between;gap:30px}.sale-band h2{font-size:clamp(32px,4vw,48px);margin:0}.sale-band p{font-size:12px;color:#6f6d63;line-height:1.7}.sale-cta{white-space:nowrap;background:#263c32}.clearance-wrap{padding-top:18px}.catalog-heading{max-width:1440px;margin:0 auto;padding:30px 30px 4px;border-top:1px solid #e5ded2}.catalog-heading h2{margin:0}.cat-sections{max-width:1440px}.cat-section{padding:10px 0 20px}.cat-head h2{font-size:24px;color:#273c31}.cat-head::after{background:linear-gradient(90deg,#b18c5d,transparent)}.cat-section .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;padding:12px 30px 30px}.cat-section .card{border:0;border-radius:0;background:transparent;box-shadow:none}.cat-section .cimg{aspect-ratio:4/4.4;background:#eee8de}.cat-section .cbody{padding:12px 1px}.cat-section .cname{font-family:'Fraunces',serif;font-size:16px;color:#293a30}.cat-section .price{color:#283c31;font-size:13px}.cat-section .addbtn{border:1px solid #d8d0c2;border-radius:0;background:transparent;color:#263c32;text-transform:uppercase;letter-spacing:.8px;font-size:9px}.cat-section .addbtn:hover{background:#263c32;color:white}
+.editorial-band{max-width:1380px;margin:25px auto 65px;display:grid;grid-template-columns:1.1fr .9fr;background:#f0e9df;min-height:390px}.editorial-image{background:url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85') center/cover;min-height:390px}.editorial-copy{padding:48px clamp(28px,5vw,75px);align-self:center}.editorial-copy h2{font-size:clamp(35px,4vw,51px);margin:0}.editorial-copy p{font-size:12px;line-height:1.9;color:#706f66;margin:18px 0 24px}.reviews-section,.faq-section{max-width:1380px;margin:0 auto;padding:28px 30px 65px}.centered{display:block;text-align:center}.centered .eyebrow{margin-bottom:12px}.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.review-card{background:#fffefa;border:1px solid #e9e2d7;padding:27px}.review-stars{color:#a17c52;letter-spacing:3px;font-size:13px}.review-card p{font-family:'Fraunces',serif;font-size:17px;line-height:1.65;color:#42473f}.review-card strong,.review-card span{display:block;font-size:10px;letter-spacing:.8px;text-transform:uppercase}.review-card span{color:#888176;margin-top:5px}.newsletter-section{background:#24392f;color:#fffefa;padding:50px max(30px,calc((100vw - 1320px)/2));display:flex;align-items:center;justify-content:space-between;gap:45px}.newsletter-section .eyebrow{color:#d0b18a}.newsletter-section h2{font-size:34px;color:#fffefa;margin:0}.newsletter-section p{color:#d0d0c5;font-size:12px;line-height:1.7}.newsletter-form{max-width:490px;width:100%}.newsletter-form label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}.newsletter-form>div{display:flex;border-bottom:1px solid #aab3a8}.newsletter-form input{flex:1;min-width:0;padding:14px 0;border:0;background:transparent;color:white;outline:none;font-size:12px}.newsletter-form input::placeholder{color:#c5c9c1}.newsletter-form button{background:transparent;border:0;color:#e4c79f;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.newsletter-form small{display:block;color:#c2c9c0;font-size:9px;margin-top:10px}.faq-section{display:grid;grid-template-columns:.8fr 1.2fr;gap:60px;padding-top:65px;padding-bottom:70px}.faq-section .section-intro{display:block}.faq-list details{border-bottom:1px solid #e3dbcf;padding:17px 0}.faq-list summary{font-family:'Fraunces',serif;font-size:16px;color:#293b31;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}.faq-list summary:after{content:'+';font-family:'Inter',sans-serif;color:#a17c52}.faq-list details[open] summary:after{content:'−'}.faq-list p{font-size:12px;color:#77766d;line-height:1.8;max-width:650px}
+.foot{background:#f0ebe2;border-top:1px solid #e3dbcf;padding-top:44px}.foot-wrap{max-width:1380px}.foot-col h4{color:#263c32}.foot-bottom{border-color:#ded5c7}.modal{border-radius:3px}.btn{background:#263c32;border-radius:2px}.addbtn,.cb-tile,.chip,.iconbtn{box-shadow:none}
+@media(max-width:900px){.lux-hero{grid-template-columns:1fr 1fr;min-height:420px;padding:24px 18px}.lux-hero-copy{padding:25px 10px}.lux-hero-image{min-height:370px}.featured-grid,.cat-section .grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hdr-row{padding:14px 18px;gap:15px}.faq-section{gap:25px}}
+@media(max-width:720px){.announcement-bar{gap:8px;flex-wrap:wrap;font-size:8px;letter-spacing:1px;padding:8px}.announcement-bar span:nth-child(2){display:none}.hdr-row{padding:12px;gap:8px}.brand{font-size:1.55rem}.hact{gap:5px}.search{max-width:none}.chips{justify-content:flex-start;padding:0 8px}.chip{padding:12px 11px;font-size:9px}.lux-hero{display:flex;flex-direction:column-reverse;padding:12px;gap:0}.lux-hero-image{min-height:290px;background-position:center}.lux-hero-copy{padding:28px 14px 22px}.lux-hero h1{font-size:45px}.hero-proof{margin-top:22px;gap:10px}.hero.container{padding:0 18px 10px}.cat-blocks{padding:20px 14px 30px}.cb-title{font-size:23px}.cb-row{grid-template-columns:repeat(2,minmax(0,1fr))}.featured-wrap{padding:22px 14px 35px}.section-intro{align-items:flex-start;flex-direction:column}.section-link{margin-top:0}.featured-grid,.cat-section .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.featured-grid .cname,.cat-section .cname{font-size:14px}.sale-band{margin:0 12px 22px;padding:28px 22px;display:block}.sale-band h2{font-size:36px}.sale-cta{margin-top:10px}.catalog-heading{padding:24px 14px 0}.cat-head{padding:12px 14px 4px}.cat-section .grid{padding:10px 14px 22px}.editorial-band{margin:18px 12px 40px;grid-template-columns:1fr}.editorial-image{min-height:250px}.editorial-copy{padding:30px 24px}.reviews-section,.faq-section{padding:20px 14px 40px}.review-grid{grid-template-columns:1fr}.review-card{padding:22px}.newsletter-section{padding:34px 20px;display:block}.newsletter-section h2{font-size:31px}.newsletter-form{margin-top:25px}.faq-section{display:block}.faq-section .section-intro{margin-bottom:18px}.foot-wrap{gap:24px}.wa-float{right:12px;bottom:12px}}
+@media(max-width:400px){.lux-hero h1{font-size:39px}.lux-hero-image{min-height:240px}.hact .link{font-size:9px}.featured-grid .addbtn,.cat-section .addbtn{font-size:8px}.hero-proof{font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -378,9 +413,10 @@ img,svg,canvas{max-width:100%}
 <canvas id="bg-canvas"></canvas>
 <div id="bg-overlay"></div>
 
+<div class="announcement-bar"><span>WELCOME TO AHMAMART</span><span>Nationwide delivery across Pakistan</span><a href="#featuredProducts">Shop the collection&nbsp; ↗</a></div>
 <header class="hdr">
   <div class="hdr-row">
-    <a class="brand" href="#" onclick="return false" style="text-decoration:none">Ahma<span>Mart</span></a>
+    <a class="brand" href="#top" style="text-decoration:none" aria-label="AhmaMart home">Ahma<span>Mart</span></a>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="searchInput" placeholder="Search products...">
@@ -395,21 +431,39 @@ img,svg,canvas{max-width:100%}
   <div class="chips" id="chips"></div>
 </header>
 
+<section class="lux-hero" id="top">
+  <div class="lux-hero-copy">
+    <span class="eyebrow">AHMAMART · EVERYDAY ESSENTIALS</span>
+    <h1>Everyday finds<br><em>made simple.</em></h1>
+    <p>Discover useful everyday products at great value, with convenient ordering and delivery across Pakistan.</p>
+    <div class="hero-actions"><a class="hero-cta" href="#featuredProducts">Shop products <span>↗</span></a><a class="hero-text-link" href="#categoryShowcase">Shop by category</a></div>
+    <div class="hero-proof"><span>✦ Curated designs</span><span>✦ Delivery across Pakistan</span><span>✦ Personal support</span></div>
+  </div>
+  <div class="lux-hero-image" role="img" aria-label="AhmaMart online store"><div class="hero-image-note"><span>AHMAMART</span><strong>Everyday shopping, simplified.</strong></div></div>
+</section>
+
 <section class="hero container">
-  <h1 style="font-size:clamp(1.7rem,4vw,2.6rem);color:var(--pine)">Everyday essentials, delivered to your door.</h1>
-  <p>Browse the collection, add what you need, and pay cash when it arrives.</p>
+  <h1 style="font-size:clamp(1.7rem,4vw,2.6rem);color:var(--pine)">Everyday essentials for your home and life.</h1>
+  <p>Browse our available products, find what you need, and enjoy convenient Cash on Delivery across Pakistan.</p>
 </section>
 
 <section class="cat-blocks" id="catBlocks"></section>
-
+<section class="featured-wrap" id="featuredProducts"><div class="section-intro"><div><span class="eyebrow">AHMAMART PICKS</span><h2>Featured products</h2><p>Explore products available in our store.</p></div><a href="#allProducts" class="section-link">Shop all products ↗</a></div><div class="featured-grid" id="featuredGrid"></div></section>
+<section class="sale-band" id="clearanceBand"><div><span class="eyebrow">A LITTLE SOMETHING EXTRA</span><h2>Find your next favourite<br><em>for less.</em></h2><p>Explore selected pieces with reduced prices while stocks last.</p></div><a href="#clearanceProducts" class="sale-cta">Explore offers ↗</a></section>
+<section class="featured-wrap clearance-wrap" id="clearanceProducts"><div class="section-intro"><div><span class="eyebrow">LIMITED-TIME FINDS</span><h2>Selected offers</h2><p>Special prices on selected products from our collection.</p></div></div><div class="featured-grid" id="saleGrid"></div></section>
+<div class="catalog-heading" id="allProducts"><span class="eyebrow">THE FULL COLLECTION</span><h2>Shop all products</h2><p>Explore the collection by category or search for something specific.</p></div>
 <div class="cat-sections" id="grid"></div>
 <div class="empty" id="emptyState" style="display:none">No products match your search.</div>
 
+<section class="editorial-band"><div class="editorial-image" role="img" aria-label="AhmaMart featured products"></div><div class="editorial-copy"><span class="eyebrow">MADE FOR EVERYDAY</span><h2>Find what you need<br><em>in one place.</em></h2><p>Explore our store, browse the products currently available, and place your order with ease. Our team is here if you need help before ordering.</p><a href="#allProducts" class="hero-cta">Shop products <span>↗</span></a></div></section>
+<section class="reviews-section"><div class="section-intro centered"><span class="eyebrow">WHY SHOP WITH US</span><h2>Shopping made simple.</h2><p>Useful products, straightforward ordering, and customer support when you need it.</p></div><div class="review-grid"><article class="review-card"><div class="review-stars">★★★★★</div><p>“Browse products and place your order in just a few simple steps.”</p><strong>Easy ordering</strong><span>Simple checkout</span></article><article class="review-card"><div class="review-stars">★★★★★</div><p>“Need help before ordering? Reach out to our team through WhatsApp.”</p><strong>Helpful support</strong><span>WhatsApp assistance</span></article><article class="review-card"><div class="review-stars">★★★★★</div><p>“Choose Cash on Delivery and pay when your order arrives.”</p><strong>Cash on Delivery</strong><span>Pay on delivery</span></article></div></section>
+<section class="newsletter-section"><div><span class="eyebrow">NOTES FROM AHMAMART</span><h2>A little inspiration<br>for your inbox.</h2><p>Get updates on new arrivals, special offers and ideas for your space.</p></div><form class="newsletter-form" id="newsletterForm"><label for="newsletterEmail">Your email address</label><div><input id="newsletterEmail" type="email" placeholder="you@example.com" required><button type="submit">Sign me up ↗</button></div><small id="newsletterMsg">By subscribing, you agree to receive occasional store updates.</small></form></section>
+<section class="faq-section"><div class="section-intro"><div><span class="eyebrow">HERE TO HELP</span><h2>Frequently asked questions</h2><p>A few useful details before you place an order.</p></div></div><div class="faq-list"><details><summary>Where do you deliver?</summary><p>We serve customers across Pakistan. Delivery timing may vary by city, item and courier availability; please contact us to confirm details for your area.</p></details><details><summary>How can I track my order?</summary><p>Use the “Track order” link at the top of the website with your order code and phone number.</p></details><details><summary>How do I ask about a product?</summary><p>Open a product to view its details, then contact our team using the WhatsApp button if you need help before ordering.</p></details><details><summary>What payment method is available?</summary><p>Cash on Delivery is available for orders placed through this website. Any delivery charges, if applicable, should be confirmed before dispatch.</p></details></div></section>
 <footer class="foot">
   <div class="foot-wrap">
     <div class="foot-col">
       <h4>Ahma<span style="color:var(--gold)">Mart</span></h4>
-      <div>Everyday essentials, delivered — Cash on Delivery.</div>
+      <div>Everyday essentials delivered across Pakistan.</div>
       <div>📍 Usmanwala, Kasur, Punjab, Pakistan</div>
       <div>📧 <a href="mailto:abu798baker@gmail.com">abu798baker@gmail.com</a></div>
       <div>📞 <a href="tel:03296063123">0329 6063123</a></div>
@@ -428,7 +482,7 @@ img,svg,canvas{max-width:100%}
       <button type="button" data-info="terms">Terms of Service</button>
     </div>
   </div>
-  <div class="foot-bottom">© <span id="footYear"></span> AhmaMart — Cash on Delivery.</div>
+  <div class="foot-bottom">© <span id="footYear"></span> AhmaMart — Everyday Essentials.</div>
 </footer>
 
 <div class="modal-overlay" id="infoOverlay">
@@ -800,6 +854,22 @@ function renderGrid(){
     c.style.opacity='0'; c.style.animationDelay=(i*50)+'ms';
     setTimeout(()=>{ c.style.opacity=''; }, i*50);
   });
+}
+
+function renderFeatureCollections(){
+  const hot = document.getElementById('featuredGrid');
+  const sale = document.getElementById('saleGrid');
+  if(!hot || !sale) return;
+  const available = DB.products.filter(p=>Number(p.stock)>0);
+  const sorted = [...available].sort((a,b)=>Number(b.id)-Number(a.id));
+  const featured = sorted.slice(0,8);
+  const deals = DB.products.filter(p=>p.compare_at_price && Number(p.compare_at_price)>Number(p.price)).sort((a,b)=>((Number(b.compare_at_price)-Number(b.price))/Math.max(Number(b.compare_at_price),1))-((Number(a.compare_at_price)-Number(a.price))/Math.max(Number(a.compare_at_price),1))).slice(0,4);
+  const make = p => `<div class="card" data-open="${p.id}" style="cursor:pointer"><div class="cimg">${p.image_url?`<img src="${p.image_url}" alt="${esc(p.name)}" loading="lazy" decoding="async">`:`<span>${esc((p.name||'?')[0])}</span>`}</div><div class="cbody"><div class="ccat">${esc(catName(p.category_id)||'AhmaMart products')}</div><div class="cname">${esc(p.name)}</div><div class="prow"><span class="price">${fmt(p.price)}</span>${p.compare_at_price?`<span class="pcompare">${fmt(p.compare_at_price)}</span>`:''}</div><button class="addbtn" data-id="${p.id}" ${p.stock<=0?'disabled':''}>${p.stock<=0?'Out of stock':'Add to cart'}</button></div></div>`;
+  hot.innerHTML = featured.length ? featured.map(make).join('') : '<p>New products are coming soon.</p>';
+  sale.innerHTML = deals.length ? deals.map(make).join('') : '<p>Offers will appear here when discounted products are available.</p>';
+  [hot,sale].forEach(root=>{root.querySelectorAll('.addbtn:not([disabled])').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();addToCart(Number(b.dataset.id));}));root.querySelectorAll('.card[data-open]').forEach(c=>c.addEventListener('click',()=>openProductDetail(Number(c.dataset.open))));});
+  document.getElementById('clearanceBand').style.display = deals.length ? 'flex' : 'none';
+  document.getElementById('clearanceProducts').style.display = deals.length ? 'block' : 'none';
 }
 
 function addToCart(id){
@@ -1227,6 +1297,7 @@ const STORE_WA = '923296063123';     // store WhatsApp number (owner receives or
 
 /* ===== Footer info pages ===== */
 document.getElementById('footYear').textContent = new Date().getFullYear();
+const newsletterForm=document.getElementById('newsletterForm'); if(newsletterForm) newsletterForm.addEventListener('submit',e=>{e.preventDefault();const email=document.getElementById('newsletterEmail').value.trim();document.getElementById('newsletterMsg').textContent='Thanks for your interest. Please contact us at abu798baker@gmail.com to join the mailing list.';newsletterForm.reset();});
 const INFO_PAGES = {
   about: { title:'About Us', html:`
     <p>AhmaMart is an online store bringing everyday essentials to your doorstep, right here in Pakistan.</p>
@@ -1429,7 +1500,7 @@ uploadArea.addEventListener('drop', e=>{
 /* ============================= */
 document.getElementById('grid').innerHTML='<p style="padding:24px;text-align:center;opacity:.7">Loading products…</p>';
 renderCart();
-loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderChips(); renderGrid(); renderCart(); });
+loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderChips(); renderGrid(); renderFeatureCollections(); renderCart(); });
 sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=await sb.rpc('is_admin'); adminAuthed=!!ok; } });
 
 /* ── Canvas background: beautiful abstract fashion/textile pattern ── */
