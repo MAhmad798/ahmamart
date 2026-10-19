@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en-PK">
 <head>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>AhmaMart Pakistan | Shoes, Clothing, Gifts &amp; Home Essentials</title>
@@ -1655,5 +1657,10 @@ sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=awa
     <span class="wa-badge"></span>
   </span>
 </a>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 </body>
 </html>
