@@ -1810,11 +1810,11 @@ async function runDiagnostics(){
     add(!o.error, 'Reading orders', o.error ? o.error.message : (o.count + ' order(s) saved in the database'), 'Run PART A of supabase-fix-orders.sql in the Supabase SQL Editor.');
   }catch(e){ add(false, 'Reading orders', String(e.message||e), 'Run PART A of supabase-fix-orders.sql.'); }
   try{
-    // harmless probe: deliberately wrong argument name, so nothing can ever be created; the reply lists the real signature
-    const p = await sb.rpc('place_order', {p_diag_probe:1});
-    const hint = p.error && (p.error.hint || '');
-    const found = /place_order\(/.test(hint || '');
-    add(found, 'Order function (place_order)', found ? hint : (p.error ? p.error.message : 'unexpected reply'), 'The order function is missing. Run PART B of supabase-fix-orders.sql.');
+    // safe probe: correct argument names but empty data, so the function rejects it before saving anything
+    const p = await sb.rpc('place_order', {p_name:'', p_phone:'', p_address:'', p_city:'', p_items:[], p_email:''});
+    const missing = !!p.error && (p.error.code === 'PGRST202' || /could not find the function/i.test(p.error.message||''));
+    const created = !p.error && p.data && p.data.code;
+    add(!missing && !created, 'Order function (place_order)', missing ? p.error.message : (created ? 'Unexpected: a test order was created, please delete it in Orders' : 'Installed and working (it correctly rejected an empty test order)'), 'The order function is missing. Run supabase-restore-place-order.sql in the Supabase SQL Editor.');
   }catch(e){ add(false, 'Order function (place_order)', String(e.message||e), 'Run PART B of supabase-fix-orders.sql.'); }
   try{
     const st = await sb.storage.from('payment-proofs').list('proofs',{limit:1});
