@@ -604,6 +604,97 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
 }
 @media(prefers-reduced-motion:reduce){.slides{transition:none}.sk{animation:none!important}}
 
+
+/* ===== Pages (product / policy) ===== */
+.inpage .home-only,.inpage #allProducts,.inpage #grid,.inpage #emptyState{display:none!important}
+#pageView{min-height:60vh}
+.pg{padding-top:14px;padding-bottom:30px;animation:pageIn .4s ease both}
+.crumbs{font-size:12.5px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 14px}
+.crumbs a,.crumbs button{color:var(--ink-soft);text-decoration:none;background:none;border:0;padding:0;font-size:inherit;font-weight:600}
+.crumbs a:hover,.crumbs button:hover{color:var(--ae)}
+.crumbs .cur{color:#191919;font-weight:600;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;background:#fff;border-radius:14px;padding:20px}
+.pp-main{aspect-ratio:1/1;background:#f6f6f6;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pp-main img{width:100%;height:100%;object-fit:contain;animation:fadeZoom .35s ease both}
+.pp-thumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px}
+.pp-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid transparent;cursor:pointer;flex:none;background:#f6f6f6;transition:border-color .2s,transform .2s}
+.pp-thumbs img:hover{transform:translateY(-2px)}
+.pp-thumbs img.on{border-color:var(--ae)}
+.pp-cat{font-size:12px;font-weight:700;color:var(--ae);text-transform:uppercase;letter-spacing:.5px}
+.pp-info h1{font-size:24px;line-height:1.25;font-weight:700;margin:6px 0 14px;font-family:inherit}
+.pp-price{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff5f3;border-radius:10px;padding:12px 14px}
+.pp-price b{font-size:30px;color:var(--ae);font-weight:800}
+.pp-price s{color:#999}
+.pp-price .dbadge{position:static}
+.pp-stock{font-weight:700;font-size:13px;margin:12px 0 4px}
+.pp-qty{display:flex;align-items:center;gap:14px;margin:14px 0;font-size:14px;font-weight:600}
+.stepper{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.stepper button{width:38px;height:38px;background:#fff;border:0;font-size:18px;font-weight:700;transition:background .15s}
+.stepper button:hover{background:var(--gold-soft)}
+.stepper span{min-width:42px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.pp-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.pp-actions .btn{flex:1;min-width:160px;padding:14px;width:auto}
+.btn.alt{background:#fff;color:var(--ae);border:2px solid var(--ae)}
+.btn.alt:hover{background:var(--gold-soft)}
+.btn:disabled{background:#eee;color:#999;border-color:#eee;cursor:not-allowed;box-shadow:none;transform:none}
+.pp-wa{display:inline-flex;margin-top:14px;color:#0a8a43;font-weight:700;font-size:14px;text-decoration:none}
+.pp-wa:hover{text-decoration:underline}
+.pp-trust{list-style:none;padding:14px 0 0;margin:16px 0 0;border-top:1px solid var(--line);display:grid;gap:8px;font-size:13px;color:#444}
+.pp-desc{background:#fff;border-radius:14px;padding:20px;margin-top:14px}
+.pp-desc h2{font-size:18px;margin-bottom:10px;font-family:inherit}
+.pp-desc div{white-space:pre-wrap;line-height:1.75;color:#444;font-size:14px}
+.ip{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px}
+.ip-nav{background:#fff;border-radius:14px;padding:10px;align-self:start;position:sticky;top:130px}
+.ip-nav h4{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.6px;padding:10px 12px 4px;font-family:inherit}
+.ip-nav a{display:block;padding:9px 12px;border-radius:8px;color:#333;text-decoration:none;font-size:14px;transition:background .15s,color .15s,transform .15s}
+.ip-nav a:hover{background:#f6f6f6;transform:translateX(3px)}
+.ip-nav a.on{background:var(--gold-soft);color:var(--ae);font-weight:700}
+.ip-body{background:#fff;border-radius:14px;padding:30px;min-width:0}
+.ip-body h1{font-size:26px;margin:0 0 16px;font-family:inherit}
+.ip-body p{line-height:1.85;color:#444;font-size:14.5px;margin:0 0 14px}
+.ip-body a{color:var(--ae)}
+
+/* ===== Animations ===== */
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeZoom{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes floatY{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 12px))}}
+@keyframes badgePop{0%{transform:scale(1)}40%{transform:scale(1.55)}100%{transform:scale(1)}}
+@keyframes shine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.rv{opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.3,1);transition-delay:var(--d,0ms)}
+.rv.in{opacity:1;transform:none}
+.slide .art{animation:floatY 5s ease-in-out infinite}
+.slide .pill,.slide h2,.slide p,.slide .go{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.slide.act .pill{opacity:1;transform:none;transition-delay:.1s}
+.slide.act h2{opacity:1;transform:none;transition-delay:.2s}
+.slide.act p{opacity:1;transform:none;transition-delay:.3s}
+.slide.act .go{opacity:1;transform:none;transition-delay:.4s}
+.slide .go{transition:opacity .6s ease,transform .6s ease,box-shadow .2s}
+.slide:hover .go{box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.badge.pop{animation:badgePop .45s ease!important}
+.brand{transition:transform .2s}
+.brand:hover{transform:scale(1.04)}
+.cimg img{transition:transform .45s ease}
+.card:hover .cimg img{transform:scale(1.07)}
+.cb-tile .cb-ico{transition:transform .25s cubic-bezier(.3,1.6,.5,1),box-shadow .25s}
+.cb-tile:hover .cb-ico{transform:translateY(-4px) scale(1.08);box-shadow:0 8px 18px rgba(255,71,71,.25)}
+.addbtn,.btn,.ub-primary,.ub-ghost,.go{transition:transform .15s,box-shadow .2s,background .2s}
+.addbtn:active,.btn:active,.ub-primary:active,.ub-ghost:active{transform:scale(.96)}
+.ub-primary,.btn:not(.alt):not(:disabled),.addbtn:not(:disabled){background-size:200% 100%}
+.btn:not(.alt):not(:disabled):hover,.addbtn:not(:disabled):hover{background-position:100% 0;box-shadow:0 6px 16px rgba(255,71,71,.3)}
+.svc div{transition:transform .2s,box-shadow .2s}
+.svc div:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.side-item{transition:background .15s,color .15s,padding-left .15s}
+.side-item:hover{padding-left:16px}
+.chip{transition:background .2s,color .2s}
+.foot-col button,.foot-col a{transition:color .15s,transform .15s}
+.foot-col button:hover{transform:translateX(3px)}
+#toTop{position:fixed;left:16px;bottom:22px;z-index:39;width:44px;height:44px;border-radius:50%;border:0;background:var(--grad);color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(255,71,71,.4);opacity:0;transform:translateY(20px) scale(.8);pointer-events:none;transition:opacity .25s,transform .25s}
+#toTop.show{opacity:1;transform:none;pointer-events:auto}
+
+@media(max-width:1000px){.ip{grid-template-columns:minmax(0,1fr)}.ip-nav{position:static;display:flex;flex-wrap:wrap;gap:4px;align-items:center}.ip-nav h4{width:100%;padding:6px 8px 0}}
+@media(max-width:820px){.pp{grid-template-columns:minmax(0,1fr);padding:12px;gap:16px}.pp-info h1{font-size:20px}.pp-price b{font-size:26px}.ip-body{padding:20px 16px}}
+@media(max-width:720px){#toTop{bottom:76px;left:12px;width:40px;height:40px}.crumbs .cur{max-width:22ch}}
+@media(prefers-reduced-motion:reduce){.rv,.slide .pill,.slide h2,.slide p,.slide .go{opacity:1!important;transform:none!important;transition:none!important}.slide .art,.pg,.pp-main img,.badge.pop{animation:none!important}.cimg img,.cb-ico{transition:none!important}}
 </style>
 </head>
 <body>
@@ -622,6 +713,7 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
   <div class="chips" id="chips"></div>
 </header>
 
+<section class="wrap" id="pageView" style="display:none"></section>
 <main class="wrap hero-wrap home-only" id="top">
   <aside class="catside" id="catSide" aria-label="Categories"></aside>
   <div class="slider" id="slider">
@@ -660,6 +752,7 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
 
 <section class="wrap nl home-only"><div><h2>Get updates from AhmaMart</h2><p>New arrivals and special offers, straight to your inbox.</p></div><form class="newsletter-form" id="newsletterForm"><label for="newsletterEmail">Your email address</label><div><input id="newsletterEmail" type="email" placeholder="you@example.com" required><button type="submit">Sign me up</button></div><small id="newsletterMsg">By subscribing, you agree to receive occasional store updates.</small></form></section>
 
+<button type="button" id="toTop" aria-label="Back to top">↑</button>
 <nav class="bnav" aria-label="Quick navigation">
   <a href="#top"><b>🏠</b>Home</a>
   <a href="#catBlocks"><b>🗂️</b>Categories</a>
@@ -1007,25 +1100,7 @@ function productCardHTML(p){
     </div>`;
 }
 function pdSetMain(url, name){ document.getElementById('pdImg').innerHTML = url?`<img src="${url}" alt="${esc(name)}">`:`<span style="font-size:3rem">${esc(name[0])}</span>`; }
-function openProductDetail(id){
-  const p = DB.products.find(p=>p.id===id); if(!p) return;
-  const gallery = productGallery(p);
-  pdSetMain(gallery[0], p.name);
-  const thumbs = document.getElementById('pdThumbs');
-  thumbs.innerHTML = gallery.length>1 ? gallery.map(url=>`<img data-url="${esc(url)}" src="${url}" alt="${esc(p.name)} image" loading="lazy" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;flex:none">`).join('') : '';
-  thumbs.querySelectorAll('img').forEach(t=>t.addEventListener('click',()=>pdSetMain(t.dataset.url, p.name)));
-  document.getElementById('pdCat').textContent = catName(p.category_id);
-  document.getElementById('pdName').textContent = p.name;
-  document.getElementById('pdPrice').textContent = fmt(p.price);
-  document.getElementById('pdCompare').innerHTML = p.compare_at_price?fmt(p.compare_at_price):'';
-  document.getElementById('pdDesc').textContent = p.description || 'Is product ki koi additional details nahin hai.';
-  document.getElementById('pdStock').textContent = p.stock>0 ? `${p.stock} in stock` : 'Out of stock';
-  document.getElementById('pdStock').style.color = p.stock>0 ? 'var(--ok)' : '#c0392b';
-  const btn = document.getElementById('pdAddBtn');
-  btn.disabled = p.stock<=0; btn.textContent = p.stock<=0?'Out of stock':'Add to cart';
-  btn.onclick = ()=>{ addToCart(p.id); };
-  openM(document.getElementById('productDetailOverlay'));
-}
+function openProductDetail(id){ homeScroll=window.scrollY; cameFromApp=true; location.hash='#/product/'+id; }
 /* Category circles (top) + category sidebar (desktop) */
 function scrollToCat(id){
   if(activeCategory!==''){ activeCategory=''; renderChips(); renderGrid(); }
@@ -1606,12 +1681,7 @@ const INFO_PAGES = {
     <p>For any disputes or questions, please reach out to us directly before taking any other action — we're happy to help.</p>` }
 };
 const infoOverlay = document.getElementById('infoOverlay');
-function openInfo(key){
-  const page = INFO_PAGES[key]; if(!page) return;
-  document.getElementById('infoTitle').textContent = page.title;
-  document.getElementById('infoBody').innerHTML = page.html;
-  openM(infoOverlay);
-}
+function openInfo(key){ if(!INFO_PAGES[key]) return; homeScroll=window.scrollY; cameFromApp=true; location.hash='#/'+key; }
 document.querySelectorAll('[data-info]').forEach(b=>b.addEventListener('click',()=>openInfo(b.dataset.info)));
 document.getElementById('infoClose').addEventListener('click',()=>closeM(infoOverlay));
 
@@ -1769,15 +1839,179 @@ document.getElementById('grid').innerHTML='<div class="pgrid">'+'<div class="car
 renderCart();
 function renderAll(){ renderChips(); renderGrid(); renderFeatureCollections(); }
 try{ const c=JSON.parse(localStorage.getItem('ahma_cache_v1')||'null'); if(c&&c.p&&c.p.length){ DB.categories=c.c||[]; DB.products=c.p; DB.images=c.i||{}; renderAll(); } }catch(e){}
-loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderAll(); renderCart(); });
+loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderAll(); renderCart(); route(); });
 sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=await sb.rpc('is_admin'); adminAuthed=!!ok; } });
+
+/* ===== Page router: product pages + info/policy pages (history-friendly) ===== */
+var BASE_TITLE = document.title, homeScroll = 0, cameFromApp = false, lastKey = null;
+var INFO_ORDER = [['Company',['about','faq','contact']],['Policies',['shipping','refund','privacy','terms']]];
+if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+function goBack(){ if(cameFromApp) history.back(); else location.hash = '#/'; }
+
+function route(){
+  const h = location.hash || '';
+  let m;
+  if((m = h.match(/^#\/product\/(\d+)/))) renderPage('p'+m[1], ()=>showProduct(Number(m[1])));
+  else if((m = h.match(/^#\/(about|faq|contact|shipping|refund|privacy|terms)$/))) renderPage(m[1], ()=>showInfoPage(m[1]));
+  else goHome(h);
+}
+function renderPage(key, fn){
+  const fresh = key !== lastKey; lastKey = key;
+  document.body.classList.add('inpage');
+  document.getElementById('pageView').style.display = 'block';
+  fn();
+  if(fresh) window.scrollTo(0,0);
+}
+function goHome(h){
+  if(!document.body.classList.contains('inpage')){ lastKey = null; return; }
+  const pv = document.getElementById('pageView');
+  document.body.classList.remove('inpage'); pv.style.display = 'none'; pv.innerHTML = '';
+  document.title = BASE_TITLE; lastKey = null;
+  const el = (h.length > 1 && h.indexOf('#/') !== 0) ? document.getElementById(h.slice(1)) : null;
+  if(el) el.scrollIntoView(); else window.scrollTo(0, homeScroll);
+}
+window.addEventListener('hashchange', route);
+
+/* quantity-aware add (used by product page) */
+function addQty(p, q){
+  const ex = cart.find(i=>i.id===p.id);
+  if(ex) ex.qty = Math.min(p.stock, ex.qty + q);
+  else cart.push({id:p.id,name:p.name,price:p.price,image_url:p.image_url,qty:Math.min(q,p.stock),stock:p.stock});
+  saveCart(); renderCart();
+}
+
+function showProduct(id){
+  const pv = document.getElementById('pageView');
+  if(!DB.products.length){ pv.innerHTML = '<div class="pg"><div class="card sk" style="height:420px"></div></div>'; return; }
+  const p = DB.products.find(x=>Number(x.id)===id);
+  if(!p){
+    pv.innerHTML = '<div class="pg"><div class="ip-body" style="text-align:center"><h1>Product not found</h1><p>This product is no longer available.</p><a class="btn" href="#/" style="display:inline-block;width:auto;padding:12px 26px;text-decoration:none">Back to store</a></div></div>';
+    return;
+  }
+  const gal = productGallery(p), d = discPct(p), cat = catName(p.category_id), inStock = p.stock > 0;
+  const stockTxt = !inStock ? 'Out of stock' : (p.stock <= 5 ? `Only ${p.stock} left in stock` : 'In stock');
+  const waText = `Assalam o Alaikum! Mujhe is product ke baray mein maloomat chahiye:\n${p.name} (${fmt(p.price)})\n${location.href}`;
+  const related = DB.products.filter(x=>x.id!==p.id && Number(x.stock)>0)
+    .sort((a,b)=>(b.category_id===p.category_id)-(a.category_id===p.category_id) || Number(b.id)-Number(a.id)).slice(0,6);
+  pv.innerHTML = `<div class="pg">
+    <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="#/">Home</a><span>›</span>${cat?`<span>${esc(cat)}</span><span>›</span>`:''}<span class="cur">${esc(p.name)}</span></nav>
+    <div class="pp">
+      <div class="pp-gal">
+        <div class="pp-main" id="ppMain">${gal[0]?`<img src="${esc(gal[0])}" alt="${esc(p.name)}" decoding="async">`:`<span style="font-size:4rem;color:#bbb">${esc((p.name||'?')[0])}</span>`}</div>
+        ${gal.length>1?`<div class="pp-thumbs" id="ppThumbs">${gal.map((u,i)=>`<img class="${i?'':'on'}" data-url="${esc(u)}" src="${esc(u)}" alt="${esc(p.name)} photo ${i+1}" loading="lazy">`).join('')}</div>`:''}
+      </div>
+      <div class="pp-info">
+        ${cat?`<div class="pp-cat">${esc(cat)}</div>`:''}
+        <h1>${esc(p.name)}</h1>
+        <div class="pp-price"><b>${fmt(p.price)}</b>${p.compare_at_price?`<s>${fmt(p.compare_at_price)}</s>`:''}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
+        <div class="pp-stock" style="color:${inStock?(p.stock<=5?'#d9480f':'var(--ok)'):'#c0392b'}">${stockTxt}</div>
+        ${inStock?`<div class="pp-qty"><span>Quantity</span><div class="stepper"><button type="button" id="qMinus" aria-label="Decrease">−</button><span id="qVal">1</span><button type="button" id="qPlus" aria-label="Increase">+</button></div></div>`:''}
+        <div class="pp-actions">
+          <button class="btn" type="button" id="ppOrder" ${inStock?'':'disabled'}>${inStock?'Order now — Cash on Delivery':'Out of stock'}</button>
+          <button class="btn alt" type="button" id="ppCart" ${inStock?'':'disabled'}>Add to cart</button>
+        </div>
+        <a class="pp-wa" target="_blank" rel="noopener" href="https://wa.me/${STORE_WA}?text=${encodeURIComponent(waText)}">💬 Ask about this product on WhatsApp</a>
+        <ul class="pp-trust"><li>💵 Pay in cash when your order arrives</li><li>🚚 Delivery across Pakistan, usually 2–5 business days</li><li>↩️ 3-day returns for damaged or wrong items</li></ul>
+      </div>
+    </div>
+    <div class="pp-desc"><h2>Product details</h2><div>${esc(p.description||'No additional details are available for this product yet.')}</div></div>
+    ${related.length?`<div class="sec-head"><div><h2>You may also like</h2></div></div><div class="pgrid" id="ppRelated">${related.map(productCardHTML).join('')}</div>`:''}
+  </div>`;
+  document.title = p.name + ' | AhmaMart';
+
+  let qty = 1;
+  const qv = document.getElementById('qVal');
+  const setQ = n=>{ qty = Math.max(1, Math.min(p.stock, n)); if(qv) qv.textContent = qty; };
+  document.getElementById('ppBack').addEventListener('click', goBack);
+  const minus = document.getElementById('qMinus'), plus = document.getElementById('qPlus');
+  if(minus) minus.addEventListener('click', ()=>setQ(qty-1));
+  if(plus) plus.addEventListener('click', ()=>setQ(qty+1));
+  document.getElementById('ppCart').addEventListener('click', ()=>{ if(!inStock) return; addQty(p, qty); openCart(); });
+  document.getElementById('ppOrder').addEventListener('click', ()=>{ if(!inStock) return; addQty(p, qty); openM(document.getElementById('checkoutOverlay')); });
+  const th = document.getElementById('ppThumbs');
+  if(th) th.addEventListener('click', e=>{
+    const im = e.target.closest('img'); if(!im) return;
+    document.getElementById('ppMain').innerHTML = `<img src="${esc(im.dataset.url)}" alt="${esc(p.name)}">`;
+    th.querySelectorAll('img').forEach(x=>x.classList.toggle('on', x===im));
+  });
+  const rel = document.getElementById('ppRelated');
+  if(rel){
+    rel.querySelectorAll('.addbtn:not([disabled])').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addToCart(Number(b.dataset.id)); }));
+    rel.querySelectorAll('.card[data-open]').forEach(c=>c.addEventListener('click',()=>openProductDetail(Number(c.dataset.open))));
+  }
+  observeReveal(pv);
+}
+
+function showInfoPage(key){
+  const pg = INFO_PAGES[key], pv = document.getElementById('pageView'); if(!pg) return;
+  const nav = INFO_ORDER.map(([label,keys])=>`<h4>${label}</h4>` + keys.map(k=>`<a href="#/${k}" class="${k===key?'on':''}">${esc(INFO_PAGES[k].title)}</a>`).join('')).join('');
+  pv.innerHTML = `<div class="pg">
+    <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="#/">Home</a><span>›</span><span class="cur">${esc(pg.title)}</span></nav>
+    <div class="ip"><aside class="ip-nav">${nav}</aside><article class="ip-body"><h1>${esc(pg.title)}</h1>${pg.html}</article></div>
+  </div>`;
+  document.title = pg.title + ' | AhmaMart';
+  document.getElementById('ppBack').addEventListener('click', goBack);
+}
+
+/* typing in search / picking a category chip while on a page returns to the store */
+(function(){
+  const si = document.getElementById('searchInput');
+  if(si) si.addEventListener('input', ()=>{ if(document.body.classList.contains('inpage')){ homeScroll = 0; location.hash = '#/'; } });
+  const ch = document.getElementById('chips');
+  if(ch) ch.addEventListener('click', ()=>{ if(document.body.classList.contains('inpage')){ homeScroll = 0; location.hash = '#/'; } });
+})();
+
+/* ===== Animations ===== */
+var revealIO = ('IntersectionObserver' in window) ? new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(!en.isIntersecting) return;
+    const el = en.target; revealIO.unobserve(el);
+    el.style.setProperty('--d', (Number(el.dataset.rvi||0) % 6) * 60 + 'ms');
+    el.classList.add('in');
+    setTimeout(()=>{ el.classList.remove('rv','in'); el.style.removeProperty('--d'); }, 900);
+  });
+},{threshold:.08,rootMargin:'0px 0px -30px 0px'}) : null;
+function observeReveal(root){
+  if(!revealIO) return;
+  let i = 0;
+  (root||document).querySelectorAll('.card:not(.sk):not(.rv),.sec-head,.cb-tile,.svc>div,.pp,.pp-desc,.ip-nav,.ip-body,.nl,.userbox').forEach(el=>{
+    if(el.classList.contains('rv')) return;
+    el.dataset.rvi = i++; el.classList.add('rv'); revealIO.observe(el);
+  });
+}
+(function(){
+  const rg = renderGrid, rf = renderFeatureCollections, rc = renderCatBlocks;
+  renderGrid = function(){ rg.apply(this, arguments); observeReveal(document.getElementById('grid')); };
+  renderFeatureCollections = function(){ rf.apply(this, arguments); observeReveal(document.getElementById('featuredProducts')); observeReveal(document.getElementById('clearanceProducts')); };
+  renderCatBlocks = function(){ rc.apply(this, arguments); observeReveal(document.getElementById('catBlocks')); };
+})();
+
+/* cart badge pop when the count changes */
+(function(){
+  const b = document.getElementById('cartCount'); if(!b || !window.MutationObserver) return;
+  new MutationObserver(()=>{ b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }).observe(b,{childList:true,characterData:true,subtree:true});
+})();
+
+/* back-to-top button */
+(function(){
+  const t = document.getElementById('toTop'); if(!t) return;
+  let on = false;
+  addEventListener('scroll', ()=>{ const s = scrollY > 700; if(s !== on){ on = s; t.classList.toggle('show', s); } }, {passive:true});
+  t.addEventListener('click', ()=>scrollTo({top:0,behavior:'smooth'}));
+})();
+
+/* first paint of the right view (e.g. someone opens a shared product link) */
+observeReveal(document);
+route();
+
 
 /* Banner slider (pure CSS gradients, no images = fast) */
 (function(){
   const slides=document.getElementById('slides'), dotsBox=document.getElementById('dots'); if(!slides||!dotsBox) return;
-  const n=slides.children.length; let i=0,t;
+  const n=slides.children.length; let i=0,t; slides.children[0].classList.add('act');
   dotsBox.innerHTML=Array.from({length:n},(_,k)=>`<button type="button" class="dot${k?'':' on'}" aria-label="Slide ${k+1}" data-i="${k}"></button>`).join('');
-  function go(k){ i=(k+n)%n; slides.style.transform=`translateX(-${i*100}%)`; [...dotsBox.children].forEach((d,j)=>d.classList.toggle('on',j===i)); }
+  function go(k){ i=(k+n)%n; [...slides.children].forEach((sl,j)=>sl.classList.toggle('act',j===i)); slides.style.transform=`translateX(-${i*100}%)`; [...dotsBox.children].forEach((d,j)=>d.classList.toggle('on',j===i)); }
   function play(){ clearInterval(t); t=setInterval(()=>{ if(!document.hidden) go(i+1); },5000); }
   dotsBox.addEventListener('click',e=>{ const b=e.target.closest('.dot'); if(b){ go(Number(b.dataset.i)); play(); } });
   let x0=null;
