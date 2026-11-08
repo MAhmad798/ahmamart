@@ -719,6 +719,10 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
 .proof{display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-decoration:none;color:var(--ink);font-size:.78rem}
 .proof img{width:100%;height:170px;object-fit:cover;border-radius:6px;background:#f3f3f3;margin-bottom:4px}
 .proof span{color:var(--ink-soft)}
+.diag-list{display:grid;gap:8px;margin:0 0 18px;max-width:760px}
+.diag{background:var(--surface);border:1px solid var(--line);border-left:4px solid #bbb;border-radius:8px;padding:10px 12px;font-size:.84rem;line-height:1.5;word-break:break-word}
+.diag.ok{border-left-color:#2F7A4E}.diag.bad{border-left-color:#d93025}
+.diag .fix{margin-top:4px;color:#b3261e;font-weight:600}
 </style>
 </head>
 <body>
@@ -962,7 +966,7 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
       <div class="nitem" id="adminExit">← Exit to store</div>
     </aside>
     <main class="amain">
-      <section id="tab-dash"><h2>Dashboard</h2><div class="stats" id="statGrid" style="margin-top:16px"></div>
+      <section id="tab-dash"><div class="topb"><h2>Dashboard</h2><button class="addp" type="button" id="diagBtn">Run connection check</button></div><div id="diagBox"></div><div class="stats" id="statGrid" style="margin-top:16px"></div>
         <h3 style="font-size:1rem;margin-bottom:10px">Low stock</h3><table><thead><tr><th>Product</th><th>Stock</th></tr></thead><tbody id="lowStockBody"></tbody></table></section>
       <section id="tab-prod" style="display:none">
         <div class="topb"><h2>Products</h2><button class="addp" id="newProdBtn">+ Add product</button></div>
@@ -1103,7 +1107,7 @@ function productGallery(p){
   const extra = (DB.images[p.id]||[]).map(r=>r.image_url);
   return [p.image_url, ...extra].filter(Boolean);
 }
-async function loadOrders(){ const r=await sb.from('orders').select('*').order('id',{ascending:false}); if(r.error) console.error(r.error); else DB.orders=r.data; }
+async function loadOrders(){ const r=await sb.from('orders').select('*').order('id',{ascending:false}); if(r.error){ console.error(r.error); DB.ordersError=r.error.message||'unknown error'; } else { DB.orders=r.data; DB.ordersError=''; } }
 let cart = JSON.parse(localStorage.getItem('usw_cart')||'[]');
 const saveCart = ()=> localStorage.setItem('usw_cart', JSON.stringify(cart));
 
@@ -1783,7 +1787,7 @@ async function loadProofs(){
   const box = document.getElementById('proofGrid'); if(!box) return;
   box.innerHTML = '<p class="pi-n">Loading…</p>';
   const l = await sb.storage.from('payment-proofs').list('proofs', {limit:60, sortBy:{column:'name', order:'desc'}});
-  if(l.error){ box.innerHTML = '<div class="msg err">Could not load payment screenshots. Please make sure the payment-proofs storage setup (SQL file) has been run.</div>'; return; }
+  if(l.error){ box.innerHTML = '<div class="msg err" style="white-space:normal">Could not load payment screenshots ('+esc(l.error.message||'')+'). Run supabase-payment-proofs.sql in Supabase, then use Dashboard → “Run connection check”.</div>'; return; }
   const files = (l.data||[]).filter(x=>x.name && !x.name.startsWith('.'));
   if(!files.length){ box.innerHTML = '<p class="pi-n">No payment screenshots yet.</p>'; return; }
   const paths = files.map(x=>'proofs/'+x.name);
@@ -1794,6 +1798,31 @@ async function loadProofs(){
     return `<a class="proof" href="${esc(url)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(url)}" alt="Payment screenshot"><b>${esc(ph||'')}</b><span>TID ${esc(tid||'')}</span><span>${ts?new Date(Number(ts)).toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'}):''}</span></a>`;
   }).join('');
 }
+async function runDiagnostics(){
+  const box = document.getElementById('diagBox'); box.innerHTML = '<p class="pi-n">Checking…</p>';
+  const rows = [], add = (ok, title, detail, fix)=>rows.push({ok, title, detail, fix});
+  try{
+    const a = await sb.rpc('is_admin');
+    add(!a.error && a.data===true, 'Admin login', a.error ? a.error.message : (a.data ? 'Logged in as admin' : 'This account is not an admin'), 'Log out and log in again with the admin email and password.');
+  }catch(e){ add(false, 'Admin login', String(e.message||e), 'Log out and log in again.'); }
+  try{
+    const o = await sb.from('orders').select('id',{count:'exact',head:true});
+    add(!o.error, 'Reading orders', o.error ? o.error.message : (o.count + ' order(s) saved in the database'), 'Run PART A of supabase-fix-orders.sql in the Supabase SQL Editor.');
+  }catch(e){ add(false, 'Reading orders', String(e.message||e), 'Run PART A of supabase-fix-orders.sql.'); }
+  try{
+    // harmless probe: deliberately wrong argument name, so nothing can ever be created; the reply lists the real signature
+    const p = await sb.rpc('place_order', {p_diag_probe:1});
+    const hint = p.error && (p.error.hint || '');
+    const found = /place_order\(/.test(hint || '');
+    add(found, 'Order function (place_order)', found ? hint : (p.error ? p.error.message : 'unexpected reply'), 'The order function is missing. Run PART B of supabase-fix-orders.sql.');
+  }catch(e){ add(false, 'Order function (place_order)', String(e.message||e), 'Run PART B of supabase-fix-orders.sql.'); }
+  try{
+    const st = await sb.storage.from('payment-proofs').list('proofs',{limit:1});
+    add(!st.error, 'Payment screenshots storage', st.error ? st.error.message : 'Ready', 'Run supabase-payment-proofs.sql in the Supabase SQL Editor.');
+  }catch(e){ add(false, 'Payment screenshots storage', String(e.message||e), 'Run supabase-payment-proofs.sql.'); }
+  box.innerHTML = '<div class="diag-list">' + rows.map(r=>`<div class="diag ${r.ok?'ok':'bad'}"><b>${r.ok?'✔':'✖'} ${esc(r.title)}</b><div>${esc(r.detail||'')}</div>${!r.ok&&r.fix?`<div class="fix">Fix: ${esc(r.fix)}</div>`:''}</div>`).join('') + '</div>';
+}
+(function(){ const b = document.getElementById('diagBtn'); if(b) b.addEventListener('click', runDiagnostics); })();
 (function(){ const t = document.querySelector('.nitem[data-tab="pay"]'); if(t) t.addEventListener('click', loadProofs); })();
 /* ----- checkout steps: 1 details -> 2 payment -> 3 receipt ----- */
 function payTotal(){ return cart.reduce((t,i)=>{ const p=DB.products.find(x=>x.id===i.id); return t + Number(p?p.price:i.price)*i.qty; },0); }
@@ -1861,7 +1890,7 @@ function showPayStep(){
   if(ov && window.MutationObserver) new MutationObserver(()=>{ if(ov.classList.contains('on') && document.getElementById('payStep').style.display!=='none' && !window._payConfirmed) showCheckoutStep(1); }).observe(ov,{attributes:true,attributeFilter:['class']});
 })();
 function renderOrdAdmin(){
-  document.getElementById('ordBody').innerHTML = DB.orders.length ? [...DB.orders].reverse().map(o=>`
+  document.getElementById('ordBody').innerHTML = DB.orders.length ? DB.orders.map(o=>`
     <tr>
       <td>${esc(o.code)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td>
       <td style="max-width:320px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
@@ -1869,7 +1898,7 @@ function renderOrdAdmin(){
       <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
         ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
       </select></td>
-    </tr>`).join('') : `<tr><td colspan="6" style="color:var(--ink-soft)">No orders yet.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="6" style="color:var(--ink-soft);white-space:normal">${DB.ordersError?'⚠️ Orders could not be loaded ('+esc(DB.ordersError)+'). Open Dashboard → “Run connection check” to see the fix.':'No orders yet.'}</td></tr>`;
 }
 
 /* Group every order by phone number into a per-customer history */
