@@ -1824,19 +1824,6 @@ async function runDiagnostics(){
     add(!missing && !created, 'Order function (place_order)', missing ? p.error.message : (created ? 'Unexpected: a test order was created, please delete it in Orders' : 'Installed and working (it correctly rejected an empty test order)'), 'The order function is missing. Run supabase-restore-place-order.sql in the Supabase SQL Editor.');
   }catch(e){ add(false, 'Order function (place_order)', String(e.message||e), 'Run PART B of supabase-fix-orders.sql.'); }
   try{
-    // what does the public API itself list? (read-only)
-    const r = await fetch(sb.supabaseUrl + '/rest/v1/', {headers:{apikey: sb.supabaseKey, Authorization: 'Bearer ' + sb.supabaseKey}});
-    const spec = await r.json();
-    const rpcs = Object.keys(spec.paths||{}).filter(k=>k.indexOf('/rpc/')===0).map(k=>k.slice(5));
-    const def = (spec.definitions||{})['(rpc) place_order'];
-    if(def){
-      const props = Object.entries(def.properties||{}).map(([k,v])=>k+':'+(v.format||v.type||'?')).join(', ');
-      add(true, 'API view of place_order', 'Listed by the API with: ' + props + (def.required&&def.required.length ? ' | required: '+def.required.join(', ') : ''));
-    } else {
-      add(false, 'API view of place_order', 'The public API does NOT list place_order. Functions it lists: ' + (rpcs.join(', ') || 'none'), 'Send this line to the developer.');
-    }
-  }catch(e){ add(false, 'API view of place_order', String(e.message||e), 'Send this line to the developer.'); }
-  try{
     const st = await sb.storage.from('payment-proofs').list('proofs',{limit:1});
     add(!st.error, 'Payment screenshots storage', st.error ? st.error.message : 'Ready', 'Run supabase-payment-proofs.sql in the Supabase SQL Editor.');
   }catch(e){ add(false, 'Payment screenshots storage', String(e.message||e), 'Run supabase-payment-proofs.sql.'); }
