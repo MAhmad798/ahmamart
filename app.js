@@ -190,7 +190,7 @@ const openCart=()=>{overlay.classList.add('on');cartDrawer.classList.add('on');}
 const closeCart=()=>{overlay.classList.remove('on');cartDrawer.classList.remove('on');};
 document.getElementById('cartBtn').addEventListener('click',openCart);
 document.getElementById('cartCloseBtn').addEventListener('click',closeCart);
-const openM=el=>el.classList.add('on'), closeM=el=>el.classList.remove('on');
+const openM=el=>{ el.classList.add('on'); if(el.id==='checkoutOverlay') prefillCheckout(); }, closeM=el=>el.classList.remove('on');
 overlay.addEventListener('click',()=>{closeCart();[checkoutOverlay,trackOverlay,confirmOverlay].forEach(closeM);});
 
 const checkoutOverlay=document.getElementById('checkoutOverlay');
@@ -427,7 +427,14 @@ function openAdmin(){
   if(adminAuthed){ document.getElementById('loginScreen').style.display='none'; document.getElementById('adminShell').style.display='flex'; refreshAdmin(); }
   else { document.getElementById('loginScreen').style.display='flex'; document.getElementById('adminShell').style.display='none'; }
 }
-document.getElementById('adminLinkBtn').addEventListener('click', openAdmin);
+/* The admin panel has no public button. Only the owner opens it, by visiting the secret link:  yourwebsite/index.html#ADMIN_KEY
+   (change ADMIN_KEY to any word you like). Real protection is still the admin email + password checked by Supabase. */
+const ADMIN_KEY = 'owner-ahma-7k2';
+function openAdminFromHash(){
+  if(location.hash === '#' + ADMIN_KEY){ history.replaceState(null,'',location.pathname+location.search); openAdmin(); }
+}
+addEventListener('hashchange', openAdminFromHash);
+setTimeout(openAdminFromHash, 0);
 document.getElementById('backToStore').addEventListener('click',()=>adminRoot.style.display='none');
 document.getElementById('adminExit').addEventListener('click',()=>adminRoot.style.display='none');
 document.getElementById('adminLogout').addEventListener('click',()=>{ adminAuthed=false; sb.auth.signOut(); DB.orders=[]; openAdmin(); });
@@ -762,6 +769,7 @@ const INFO_PAGES = {
     <p>Items must be unused and in their original packaging to be eligible for return, unless the issue is a defect or wrong item received.</p>` },
   privacy: { title:'Privacy Policy', html:`
     <p>We collect only the information needed to process your order: your name, phone number, and delivery address.</p>
+    <p>If you choose to create an optional account, we also store your email address (and the name and phone number you give us) so we can sign you in and pre-fill your details at checkout. You can always shop as a guest instead.</p>
     <p>This information is used solely to fulfil and deliver your order, contact you if there's an issue with your order.</p>
     <p>We do not sell or share your personal information with third parties, other than the courier needed to deliver your package.</p>
     <p>If you have any questions about how your information is handled, contact us at <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a>.</p>` },
@@ -1094,7 +1102,7 @@ renderCart();
 function renderAll(){ renderChips(); renderGrid(); renderFeatureCollections(); }
 try{ const c=JSON.parse(localStorage.getItem('ahma_cache_v1')||'null'); if(c&&c.p&&c.p.length){ DB.categories=c.c||[]; DB.products=c.p; DB.images=c.i||{}; renderAll(); } }catch(e){}
 loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderAll(); renderCart(); route(); });
-sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=await sb.rpc('is_admin'); adminAuthed=!!ok; } });
+sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=await sb.rpc('is_admin'); adminAuthed=!!ok; if(adminAuthed && adminRoot.style.display==='block') openAdmin(); } });
 
 /* ===== Multi-page setup: every page is a real file (index, product, about, faq ...) ===== */
 var PAGE = document.body.getAttribute('data-page') || 'home';
@@ -1303,6 +1311,40 @@ function observeReveal(root){
 observeReveal(document);
 route();
 
+
+/* ===== Optional customer account (email login via login.html) =====
+   Guests can still browse and order exactly as before. Logging in only pre-fills checkout details. */
+var currentUser = null;
+function acctNext(){ const f = location.pathname.split('/').pop() || 'index.html'; return f === 'login.html' ? 'index.html' : f + location.search; }
+function updateAccountUI(){
+  const a = document.getElementById('accountLink'), lo = document.getElementById('logoutLink'), b = document.getElementById('bnavAccount');
+  const next = 'login.html?next=' + encodeURIComponent(acctNext());
+  if(currentUser){
+    /* only the first name is shown (never the email address) */
+    const nm = (((currentUser.user_metadata||{}).full_name || '').trim().split(' ')[0]) || 'Account';
+    if(a){ a.textContent = '👤 ' + nm; a.href = 'login.html?next=' + encodeURIComponent(acctNext()); a.removeAttribute('title'); }
+    if(lo) lo.style.display = '';
+    if(b){ b.href = 'login.html?next=' + encodeURIComponent(acctNext()); b.lastChild.textContent = nm.length>9 ? nm.slice(0,8)+'…' : nm; }
+  } else {
+    if(a){ a.textContent = 'Login'; a.href = next; a.title = ''; }
+    if(lo) lo.style.display = 'none';
+    if(b){ b.href = next; b.lastChild.textContent = 'Login'; }
+  }
+}
+function prefillCheckout(){
+  if(!currentUser) return;
+  const f = document.getElementById('checkoutForm'); if(!f) return;
+  const m = currentUser.user_metadata || {};
+  const set = (n,v)=>{ if(v && f[n] && !f[n].value) f[n].value = v; };
+  set('name', m.full_name); set('phone', m.phone); set('email', currentUser.email);
+}
+(function(){
+  const lo = document.getElementById('logoutLink');
+  if(lo) lo.addEventListener('click', async ()=>{ await sb.auth.signOut(); currentUser = null; adminAuthed = false; DB.orders = []; updateAccountUI(); });
+  sb.auth.getSession().then(({data})=>{ currentUser = data.session ? data.session.user : null; updateAccountUI(); });
+  sb.auth.onAuthStateChange((ev,session)=>{ currentUser = session ? session.user : null; updateAccountUI(); });
+  updateAccountUI();
+})();
 
 /* Banner slider (pure CSS gradients, no images = fast) */
 (function(){

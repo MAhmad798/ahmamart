@@ -653,3 +653,8 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
   .cat-head{flex-wrap:wrap}
 }
 @media(hover:none){.subtile:hover{transform:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}}
+
+/* ===== Optional customer login link ===== */
+a.link{text-decoration:none;display:inline-block}
+.topbar a.link{line-height:normal}
+#bnavAccount b{font-weight:400}
