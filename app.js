@@ -7,7 +7,7 @@ const esc = t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':
 async function loadPublic(){
   const [c,p,pi]=await Promise.all([sb.from('categories').select('*').order('id'),sb.from('products').select('*').order('id'),sb.from('product_images').select('*').order('sort_order')]);
   if(c.error||p.error){ console.error(c.error||p.error); document.getElementById('grid').innerHTML='<p style="padding:24px;text-align:center">Store load nahin ho saka. Page refresh karein.</p>'; return; }
-  DB.categories=c.data; DB.products=p.data;
+  DB.categories=c.data; DB.products=p.data; DB.loaded=true;
   DB.images = {};
   if(!pi.error) for(const row of pi.data){ (DB.images[row.product_id] ||= []).push(row); }
   try{ localStorage.setItem('ahma_cache_v1',JSON.stringify({c:DB.categories,p:DB.products,i:DB.images})); }catch(e){}
@@ -24,19 +24,41 @@ let activeCategory = '', searchTerm = '';
 
 function catName(id){ const c = DB.categories.find(c=>c.id===id); return c? c.name : ''; }
 
+/* ===== Category tree (categories can have sub-categories, any depth) =====
+   A category with parent_id = null is a main (top-level) category.
+   If the parent_id column does not exist yet in Supabase, every category is simply top-level (old behaviour). */
+function catById(id){ return DB.categories.find(c=>Number(c.id)===Number(id)); }
+function catParentId(c){ return c && c.parent_id!=null ? Number(c.parent_id) : null; }
+function catChildren(id){ return DB.categories.filter(c=>catParentId(c)===Number(id)); }
+function catRoots(){ return DB.categories.filter(c=>{ const p=catParentId(c); return p===null || !catById(p); }); }
+function catHasChildren(id){ return catChildren(id).length>0; }
+function catDescendantIds(id){ const out=[Number(id)]; for(let i=0;i<out.length;i++){ catChildren(out[i]).forEach(c=>{ if(!out.includes(Number(c.id))) out.push(Number(c.id)); }); } return out; }
+function catPath(id){ const path=[]; let c=catById(id), guard=0; while(c && guard++<25){ path.unshift(c); c=catById(catParentId(c)); } return path; }
+function catPathName(id){ return catPath(id).map(c=>c.name).join(' › '); }
+function productsInCat(id, list){ const ids=new Set(catDescendantIds(id)); return (list||DB.products).filter(p=>ids.has(Number(p.category_id))); }
+function catPageHref(id){ return 'category.html?id=' + encodeURIComponent(id); }
+/* where a main-category tile/chip/link goes: categories with sub-categories open their own page, others behave as before */
+function catGo(id){
+  if(id && catHasChildren(id)){ location.href = catPageHref(id); return true; }
+  return false;
+}
+
 function renderChips(){
   const el = document.getElementById('chips');
   el.innerHTML = `<button class="chip ${activeCategory===''?'on':''}" data-id="">All</button>` +
-    DB.categories.map(c=>`<button class="chip ${activeCategory===c.id?'on':''}" data-id="${c.id}">${c.name}</button>`).join('');
+    catRoots().map(c=>`<button class="chip ${activeCategory===c.id?'on':''}" data-id="${c.id}">${esc(c.name)}</button>`).join('');
   el.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
-    activeCategory = ch.dataset.id ? Number(ch.dataset.id) : '';
+    const id = ch.dataset.id ? Number(ch.dataset.id) : '';
+    if(id!=='' && catGo(id)) return;
+    activeCategory = id;
     renderChips(); renderGrid();
   }));
 }
 
 function filteredProducts(){
+  const ids = activeCategory!=='' ? new Set(catDescendantIds(activeCategory)) : null;
   return DB.products.filter(p=>{
-    if(activeCategory!=='' && p.category_id!==activeCategory) return false;
+    if(ids && !ids.has(Number(p.category_id))) return false;
     if(searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
@@ -78,7 +100,7 @@ function scrollToCat(id){
 function renderCatBlocks(){
   const box = document.getElementById('catBlocks'), side = document.getElementById('catSide');
   const matches = DB.products.filter(p=>!searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const cats = DB.categories.map(c=>({id:c.id,name:c.name,image_url:c.image_url,n:matches.filter(p=>p.category_id===c.id).length}));
+  const cats = catRoots().map(c=>({id:c.id,name:c.name,image_url:c.image_url,n:productsInCat(c.id,matches).length}));
   const other = matches.filter(p=>!DB.categories.some(c=>c.id===p.category_id)).length;
   if(other) cats.push({id:0,name:'Other',n:other});
   if(box) box.innerHTML = cats.length ? `<div class="cb-title">Shop by category</div><div class="cb-row">` +
@@ -87,7 +109,7 @@ function renderCatBlocks(){
       <span class="cb-name">${esc(c.name)}</span></button>`).join('') + `</div>` : '';
   if(side) side.innerHTML = cats.length ? `<div class="side-title">Categories</div>` +
     cats.map(c=>`<button type="button" class="side-item" data-id="${c.id}"><span aria-hidden="true">${catIcon(c.name)}</span><span class="side-name">${esc(c.name)}</span><span class="side-count">${c.n}</span><i>›</i></button>`).join('') : '';
-  [box,side].forEach(root=>{ if(root) root.querySelectorAll('[data-id]').forEach(t=>t.addEventListener('click',()=>scrollToCat(Number(t.dataset.id)))); });
+  [box,side].forEach(root=>{ if(root) root.querySelectorAll('[data-id]').forEach(t=>t.addEventListener('click',()=>{ const id=Number(t.dataset.id); if(!catGo(id)) scrollToCat(id); })); });
 }
 
 /* Products grouped in separate blocks, one per category */
@@ -99,12 +121,12 @@ function renderGrid(){
   renderCatBlocks();
   if(list.length===0){ wrap.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-  const groups = DB.categories.map(c=>({id:c.id,name:c.name,items:list.filter(p=>p.category_id===c.id)}));
+  const groups = catRoots().map(c=>({id:c.id,name:c.name,items:productsInCat(c.id,list)}));
   const rest = list.filter(p=>!DB.categories.some(c=>c.id===p.category_id));
   if(rest.length) groups.push({id:0,name:'Other',items:rest});
   wrap.innerHTML = groups.filter(g=>g.items.length).map(g=>`
     <section class="cat-section" id="cat-sec-${g.id}">
-      <div class="cat-head"><span class="cat-ico">${catIcon(g.name)}</span><h2>${g.name}</h2><span class="cat-num">${g.items.length}</span></div>
+      <div class="cat-head"><span class="cat-ico">${catIcon(g.name)}</span><h2>${g.name}</h2><span class="cat-num">${g.items.length}</span>${g.id&&catHasChildren(g.id)?`<a class="cat-more" href="${catPageHref(g.id)}">Browse ${esc(g.name)} ›</a>`:''}</div>
       <div class="grid">${g.items.map(productCardHTML).join('')}</div>
     </section>`).join('');
   wrap.querySelectorAll('.addbtn:not([disabled])').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addToCart(Number(b.dataset.id)); }));
@@ -469,14 +491,44 @@ async function uploadCategoryImage(file){
   if(up.error) throw up.error;
   return sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 }
+/* Categories as a flat list in tree order: [{c, depth}] */
+function catTreeList(){
+  const out=[], seen=new Set();
+  const walk=(list,depth)=>list.forEach(c=>{ if(seen.has(Number(c.id))) return; seen.add(Number(c.id)); out.push({c,depth}); walk(catChildren(c.id),depth+1); });
+  walk(catRoots(),0);
+  return out;
+}
+const SUBCAT_SQL_MSG = 'Sub-categories ke liye pehle Supabase me "supabase-subcategories.sql" chalayen (SQL Editor me paste karke Run), phir dobara koshish karein.';
+function catErrMsg(err, fallback){
+  const m = (err && err.message) || '';
+  if(/parent_id/i.test(m)) return SUBCAT_SQL_MSG;
+  if(/image_url|column/i.test(m)) return 'Category picture support needs an image_url column in your Supabase categories table. Run the SQL instructions provided with this update, then try again.';
+  return m || fallback;
+}
 function renderCatAdmin(){
-  document.getElementById('catBody').innerHTML = DB.categories.map(c=>`<tr>
+  const tree = catTreeList();
+  const prodCount = id => DB.products.filter(p=>Number(p.category_id)===Number(id)).length;
+  document.getElementById('catBody').innerHTML = tree.map(({c,depth})=>{
+    const kids = catChildren(c.id).length, n = prodCount(c.id), id = Number(c.id);
+    return `<tr>
     <td>${c.image_url?`<img class="cb-upload-img" loading="lazy" src="${esc(c.image_url)}" alt="">`:'—'}</td>
-    <td>${esc(c.name)}</td><td style="display:flex;gap:6px;flex-wrap:wrap">
-    <button class="sm" type="button" onclick="changeCatImage(${Number(c.id)})">Change picture</button>
-    <button class="sm" type="button" onclick="renameCat(${Number(c.id)})">Rename</button>
-    <button class="sm dg" type="button" onclick="deleteCat(${Number(c.id)})">Delete</button></td></tr>`).join('');
-  document.getElementById('catSelect').innerHTML = '<option value="">Uncategorized</option>' + DB.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    <td><div class="cat-tree-name" style="padding-left:${depth*22}px">${depth?'<span class="cat-branch" aria-hidden="true">└</span>':''}<b>${esc(c.name)}</b> <small class="cat-meta">${n} product${n===1?'':'s'}${kids?` · ${kids} sub-categor${kids===1?'y':'ies'}`:''}</small></div></td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap">
+    <button class="sm" type="button" onclick="addSubCat(${id})">+ Sub-category</button>
+    <button class="sm" type="button" onclick="changeCatImage(${id})">Change picture</button>
+    <button class="sm" type="button" onclick="renameCat(${id})">Rename</button>
+    <button class="sm" type="button" onclick="moveCat(${id})">Move</button>
+    <button class="sm dg" type="button" onclick="deleteCat(${id})">Delete</button></td></tr>`;
+  }).join('') || '<tr><td colspan="3" style="color:var(--ink-soft)">No categories yet. Add your first one above (e.g. Men).</td></tr>';
+  const opts = tree.map(({c})=>`<option value="${c.id}">${esc(catPathName(c.id))}</option>`).join('');
+  document.getElementById('catSelect').innerHTML = '<option value="">Uncategorized</option>' + opts;
+  const ps = document.getElementById('catParentSelect');
+  if(ps){ const keep = ps.value; ps.innerHTML = '<option value="">— Main category (top level) —</option>' + opts; ps.value = keep; }
+  /* warn if the parent_id column has not been added in Supabase yet */
+  const tbl = document.getElementById('catBody').closest('table');
+  let note = document.getElementById('catSqlNote');
+  if(!note){ note = document.createElement('div'); note.id = 'catSqlNote'; tbl.before(note); }
+  note.innerHTML = (DB.categories.length && !('parent_id' in DB.categories[0])) ? `<div class="msg err" style="margin-bottom:12px">${esc(SUBCAT_SQL_MSG)}</div>` : '';
 }
 document.getElementById('catForm').addEventListener('submit',async e=>{
   e.preventDefault(); const f=e.target, button=f.querySelector('button[type="submit"]');
@@ -485,13 +537,45 @@ document.getElementById('catForm').addEventListener('submit',async e=>{
     const name=f.name.value.trim(); let image_url=null;
     if(f.image.files[0]) image_url=await uploadCategoryImage(f.image.files[0]);
     const payload={name}; if(image_url) payload.image_url=image_url;
+    const parent=f.parent_id.value; if(parent) payload.parent_id=Number(parent);
     const r=await sb.from('categories').insert(payload);
     if(r.error) throw r.error;
-    f.reset(); await loadPublic(); renderCatAdmin(); renderChips(); renderGrid();
+    f.reset(); f.parent_id.value = parent;   /* keep the parent selected so several sub-categories can be added quickly */
+    await loadPublic(); renderCatAdmin(); renderChips(); renderGrid();
+    f.parent_id.value = parent;
   }catch(err){
     console.error(err);
-    alert(/image_url|column/i.test(err.message||'') ? 'Category picture support needs an image_url column in your Supabase categories table. Run the SQL instructions provided with this update, then try again.' : (err.message||'Could not save category.'));
+    alert(catErrMsg(err,'Could not save category.'));
   }finally{button.disabled=false;button.textContent='Add category';}
+});
+/* "+ Sub-category" on a row: pre-select that category as the parent in the add form */
+function addSubCat(id){
+  const f=document.getElementById('catForm'); f.parent_id.value=String(id);
+  f.scrollIntoView({behavior:'smooth',block:'center'}); f.name.focus();
+}
+/* Move a category under another parent (or back to top level) */
+const catMoveModal=document.getElementById('catMoveModal');
+function moveCat(id){
+  const c=catById(id); if(!c) return;
+  const banned=new Set(catDescendantIds(id));   /* cannot move a category into itself or its own children */
+  const f=document.getElementById('catMoveForm');
+  f.id.value=id;
+  document.getElementById('catMoveTitle').textContent='Move “'+c.name+'”';
+  document.getElementById('catMoveMsg').innerHTML='';
+  document.getElementById('catMoveSelect').innerHTML='<option value="">— Main category (top level) —</option>'+catTreeList().filter(({c:x})=>!banned.has(Number(x.id))).map(({c:x})=>`<option value="${x.id}">${esc(catPathName(x.id))}</option>`).join('');
+  document.getElementById('catMoveSelect').value=catParentId(c)==null?'':String(catParentId(c));
+  openM(catMoveModal);
+}
+document.getElementById('catMoveClose').addEventListener('click',()=>closeM(catMoveModal));
+document.getElementById('catMoveForm').addEventListener('submit',async e=>{
+  e.preventDefault(); const f=e.target, id=Number(f.id.value), pv=f.parent_id.value;
+  const btn=f.querySelector('button[type=submit]'); btn.disabled=true;
+  try{
+    const r=await sb.from('categories').update({parent_id:pv?Number(pv):null}).eq('id',id);
+    if(r.error) throw r.error;
+    closeM(catMoveModal); await loadPublic(); renderCatAdmin(); renderProdAdmin(); renderChips(); renderGrid();
+  }catch(err){ console.error(err); document.getElementById('catMoveMsg').innerHTML='<div class="msg err">'+esc(catErrMsg(err,'Could not move category.'))+'</div>'; }
+  finally{ btn.disabled=false; }
 });
 async function changeCatImage(id){
   const c=DB.categories.find(x=>Number(x.id)===Number(id)); if(!c) return;
@@ -514,12 +598,12 @@ async function renameCat(id){
   if(r.error){alert(r.error.message);return;}
   await loadPublic();renderCatAdmin();renderChips();renderGrid();
 }
-async function deleteCat(id){ if(!confirm('Delete this category?')) return; const r=await sb.from('categories').delete().eq('id',id); if(r.error){ alert(r.error.message); return; } await loadPublic(); renderCatAdmin(); renderChips(); renderGrid(); }
+async function deleteCat(id){ if(catHasChildren(id)){ alert('Is category ke andar sub-categories hain. Pehle unhein delete karein ya "Move" se kisi aur category me bhej dein, phir delete karein.'); return; } if(!confirm('Delete this category?')) return; const r=await sb.from('categories').delete().eq('id',id); if(r.error){ alert(r.error.message); return; } await loadPublic(); renderCatAdmin(); renderChips(); renderGrid(); }
 
 function renderProdAdmin(){
   document.getElementById('prodBody').innerHTML = DB.products.map(p=>`
     <tr><td>${p.image_url?`<img loading="lazy" src="${p.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:''}</td>
-      <td>${p.name}</td><td>${catName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${p.stock}</td>
+      <td>${p.name}</td><td>${catPathName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${p.stock}</td>
       <td style="display:flex;gap:6px"><button class="sm" onclick='editProd(${p.id})'>Edit</button><button class="sm dg" onclick="deleteProd(${p.id})">Delete</button></td></tr>`).join('');
 }
 const prodModal=document.getElementById('prodModal');
@@ -1024,6 +1108,7 @@ function goBack(){
 function route(){
   if(PAGE === 'product'){ renderPage(()=>showProduct(new URLSearchParams(location.search).get('id'))); }
   else if(PAGE === 'info'){ renderPage(()=>showInfoPage(document.body.getAttribute('data-info'))); }
+  else if(PAGE === 'category'){ renderPage(()=>showCategory(new URLSearchParams(location.search).get('id'))); }
 }
 function renderPage(fn){
   document.body.classList.add('inpage');
@@ -1052,13 +1137,13 @@ function showProduct(rawId){
     pv.innerHTML = '<div class="pg"><div class="ip-body" style="text-align:center"><h1>Product not found</h1><p>This product is no longer available.</p><a class="btn" href="index.html" style="display:inline-block;width:auto;padding:12px 26px;text-decoration:none">Back to store</a></div></div>';
     return;
   }
-  const gal = productGallery(p), d = discPct(p), cat = catName(p.category_id), inStock = p.stock > 0;
+  const gal = productGallery(p), d = discPct(p), cat = catPathName(p.category_id), catTrail = catPath(p.category_id), inStock = p.stock > 0;
   const stockTxt = !inStock ? 'Out of stock' : (p.stock <= 5 ? `Only ${p.stock} left in stock` : 'In stock');
   const waText = `Assalam o Alaikum! Mujhe is product ke baray mein maloomat chahiye:\n${p.name} (${fmt(p.price)})\n${location.href}`;
   const related = DB.products.filter(x=>x.id!==p.id && Number(x.stock)>0)
     .sort((a,b)=>(b.category_id===p.category_id)-(a.category_id===p.category_id) || Number(b.id)-Number(a.id)).slice(0,6);
   pv.innerHTML = `<div class="pg">
-    <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span>${cat?`<span>${esc(cat)}</span><span>›</span>`:''}<span class="cur">${esc(p.name)}</span></nav>
+    <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span>${catTrail.map(c=>`<a href="${catPageHref(c.id)}">${esc(c.name)}</a><span>›</span>`).join('')}<span class="cur">${esc(p.name)}</span></nav>
     <div class="pp">
       <div class="pp-gal">
         <div class="pp-main" id="ppMain">${gal[0]?`<img src="${esc(gal[0])}" alt="${esc(p.name)}" decoding="async">`:`<span style="font-size:4rem;color:#bbb">${esc((p.name||'?')[0])}</span>`}</div>
@@ -1106,6 +1191,43 @@ function showProduct(rawId){
   observeReveal(pv);
 }
 
+/* Category page: shows the sub-categories (if any) and then the products of this category + everything inside it */
+function showCategory(rawId){
+  const pv = document.getElementById('pageView');
+  if(!DB.loaded && !DB.categories.length){ pv.innerHTML = '<div class="pg"><div class="card sk" style="height:320px"></div></div>'; return; }
+  const c = catById(rawId);
+  if(!c){
+    pv.innerHTML = '<div class="pg"><div class="ip-body" style="text-align:center"><h1>Category not found</h1><p>This category is no longer available.</p><a class="btn" href="index.html" style="display:inline-block;width:auto;padding:12px 26px;text-decoration:none">Back to store</a></div></div>';
+    return;
+  }
+  const trail = catPath(c.id), kids = catChildren(c.id), items = productsInCat(c.id);
+  const tiles = kids.map(k=>{
+    const n = productsInCat(k.id).length;
+    return `<a class="subtile" href="${catPageHref(k.id)}">
+      <span class="subimg">${k.image_url?`<img src="${esc(k.image_url)}" alt="${esc(k.name)}" loading="lazy" decoding="async">`:`<span aria-hidden="true">${catIcon(k.name)}</span>`}</span>
+      <span class="subname">${esc(k.name)}</span>
+      <span class="subcount">${n ? n + (n===1?' product':' products') : 'Coming soon'}</span></a>`;
+  }).join('');
+  pv.innerHTML = `<div class="pg">
+    <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span>${trail.map((t,i)=>i<trail.length-1?`<a href="${catPageHref(t.id)}">${esc(t.name)}</a><span>›</span>`:`<span class="cur">${esc(t.name)}</span>`).join('')}</nav>
+    <div class="catpg-head"><h1>${esc(c.name)}</h1>${items.length?`<span class="cat-num">${items.length}</span>`:''}</div>
+    ${kids.length?`<div class="sec-head"><div><h2>Shop by category</h2></div></div><div class="subgrid">${tiles}</div>`:''}
+    ${items.length?`${kids.length?`<div class="sec-head"><div><h2>All ${esc(c.name)}</h2></div></div>`:''}<div class="pgrid" id="catProducts">${items.map(productCardHTML).join('')}</div>`
+      : (kids.length?'':`<div class="empty">No products in this category yet.<br><a class="btn" href="index.html" style="display:inline-block;width:auto;padding:12px 26px;text-decoration:none;margin-top:14px">Back to store</a></div>`)}
+  </div>`;
+  setMeta(c.name + ' | AhmaMart', 'Shop ' + trail.map(t=>t.name).join(' › ') + ' at AhmaMart Pakistan. Delivery across Pakistan.');
+  /* highlight the main category in the header chips */
+  const rootId = trail[0] ? Number(trail[0].id) : null;
+  document.querySelectorAll('#chips .chip').forEach(ch=>ch.classList.toggle('on', ch.dataset.id!=='' && Number(ch.dataset.id)===rootId));
+  document.getElementById('ppBack').addEventListener('click', goBack);
+  const g = document.getElementById('catProducts');
+  if(g){
+    g.querySelectorAll('.addbtn:not([disabled])').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addToCart(Number(b.dataset.id)); }));
+    g.querySelectorAll('.card[data-open]').forEach(cd=>cd.addEventListener('click',()=>openProductDetail(Number(cd.dataset.open))));
+  }
+  observeReveal(pv);
+}
+
 function showInfoPage(key){
   const pg = INFO_PAGES[key], pv = document.getElementById('pageView'); if(!pg) return;
   const nav = INFO_ORDER.map(([label,keys])=>`<h4>${label}</h4>` + keys.map(k=>`<a href="${INFO_FILES[k]}" class="${k===key?'on':''}">${esc(INFO_PAGES[k].title)}</a>`).join('')).join('');
@@ -1133,6 +1255,7 @@ function showInfoPage(key){
   if(ch) ch.addEventListener('click', e=>{
     const c = e.target.closest('.chip'); if(!c) return;
     e.stopPropagation(); e.preventDefault();
+    if(c.dataset.id && catGo(Number(c.dataset.id))) return;
     location.href = 'index.html' + (c.dataset.id ? '?cat=' + encodeURIComponent(c.dataset.id) : '');
   }, true);
 })();
@@ -1150,7 +1273,7 @@ var revealIO = ('IntersectionObserver' in window) ? new IntersectionObserver(ent
 function observeReveal(root){
   if(!revealIO) return;
   let i = 0;
-  (root||document).querySelectorAll('.card:not(.sk):not(.rv),.sec-head,.cb-tile,.svc>div,.pp,.pp-desc,.ip-nav,.ip-body,.nl,.userbox').forEach(el=>{
+  (root||document).querySelectorAll('.card:not(.sk):not(.rv),.sec-head,.cb-tile,.subtile,.svc>div,.pp,.pp-desc,.ip-nav,.ip-body,.nl,.userbox').forEach(el=>{
     if(el.classList.contains('rv')) return;
     el.dataset.rvi = i++; el.classList.add('rv'); revealIO.observe(el);
   });

@@ -56,7 +56,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 <link rel="preconnect" href="https://wfdedrzkqtndnqulvpos.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="style.css?v=20261108">
+<link rel="stylesheet" href="style.css?v=20261115">
 </head>
 <body class="inpage" data-page="product">
 
@@ -308,12 +308,13 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
       </section>
       <section id="tab-cat" style="display:none">
         <h2 style="margin-bottom:16px">Categories</h2>
-        <form id="catForm" style="display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,1fr) auto;gap:8px;max-width:680px;margin-bottom:16px;align-items:center">
-          <input name="name" placeholder="Category name (e.g. Men)" required style="min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">
+        <form id="catForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-width:900px;margin-bottom:16px;align-items:center">
+          <input name="name" placeholder="Category name (e.g. Shoes)" required style="min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">
+          <select name="parent_id" id="catParentSelect" title="Parent category" style="min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)"><option value="">— Main category (top level) —</option></select>
           <label class="cat-upload-label">Choose category picture <input name="image" type="file" accept="image/*" style="display:block;width:100%;font-size:.78rem;margin-top:6px"></label>
           <button class="addp" type="submit">Add category</button>
         </form>
-        <p style="font-size:.8rem;color:var(--ink-soft);margin:0 0 14px">Square or landscape images work best. You can change a category picture from the list below.</p>
+        <p style="font-size:.8rem;color:var(--ink-soft);margin:0 0 14px">Square or landscape images work best. To make a sub-category (e.g. Shoes inside Men), choose the parent in the middle box, or press “+ Sub-category” on a row. Sub-categories can have their own sub-categories too.</p>
         <table><thead><tr><th>Picture</th><th>Name</th><th>Actions</th></tr></thead><tbody id="catBody"></tbody></table>
       </section>
       <section id="tab-ord" style="display:none">
@@ -330,6 +331,20 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
         <table><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Last order</th><th></th></tr></thead><tbody id="custBody"></tbody></table>
       </section>
     </main>
+  </div>
+</div>
+
+<!-- Move category -->
+<div class="modal-overlay" id="catMoveModal">
+  <div class="modal" style="max-width:420px">
+    <button class="mclose" id="catMoveClose" type="button">&times;</button>
+    <h3 id="catMoveTitle" style="margin-bottom:14px">Move category</h3>
+    <div id="catMoveMsg"></div>
+    <form id="catMoveForm">
+      <input type="hidden" name="id">
+      <div class="field"><label>Put it inside</label><select name="parent_id" id="catMoveSelect"></select></div>
+      <button class="btn" type="submit">Save</button>
+    </form>
   </div>
 </div>
 
@@ -422,7 +437,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261108"></script>
+<script src="app.js?v=20261115"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum!%20Mujhe%20AhmaMart%20Store%20se%20order%20ke%20baray%20me%20maloomat%20chahiye." target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">

@@ -207,7 +207,7 @@ th{background:var(--gold-soft);font-size:.72rem;text-transform:uppercase;color:v
 .cat-section .grid{padding:6px 18px 26px}
 
 /* FIX: product editor must appear ABOVE the admin panel (admin is z-index 80) */
-#prodModal{z-index:100}
+#prodModal,#catMoveModal{z-index:100}
 
 /* ===================== RESPONSIVE (Mobile / Tablet / PC) ===================== */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
@@ -629,3 +629,27 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
 .diag{background:var(--surface);border:1px solid var(--line);border-left:4px solid #bbb;border-radius:8px;padding:10px 12px;font-size:.84rem;line-height:1.5;word-break:break-word}
 .diag.ok{border-left-color:#2F7A4E}.diag.bad{border-left-color:#d93025}
 .diag .fix{margin-top:4px;color:#b3261e;font-weight:600}
+
+
+/* ===== Sub-categories: category page + home link + admin tree ===== */
+.catpg-head{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+.catpg-head h1{font-size:26px;font-weight:800;margin:0;font-family:inherit;color:#191919}
+.catpg-head .cat-num{background:var(--ae)}
+.subgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:10px}
+.subtile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px 14px;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.05);text-decoration:none;color:#191919;transition:transform .2s,box-shadow .2s}
+.subtile:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.12)}
+.subimg{width:100%;aspect-ratio:1/1;border-radius:12px;background:#f6f6f6;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:42px}
+.subimg img{width:100%;height:100%;object-fit:cover}
+.subname{font-weight:700;font-size:14px;text-align:center;line-height:1.3}
+.subcount{font-size:11.5px;color:var(--ink-soft)}
+.cat-more{order:4;color:var(--ae);font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap}
+.cat-more:hover{text-decoration:underline}
+.cat-tree-name{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.cat-branch{color:var(--ink-soft)}
+.cat-meta{color:var(--ink-soft);font-size:.74rem}
+@media(max-width:560px){
+  .subgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .catpg-head h1{font-size:21px}
+  .cat-head{flex-wrap:wrap}
+}
+@media(hover:none){.subtile:hover{transform:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}}
