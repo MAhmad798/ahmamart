@@ -658,3 +658,23 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'
 a.link{text-decoration:none;display:inline-block}
 .topbar a.link{line-height:normal}
 #bnavAccount b{font-weight:400}
+
+/* AhmaMart logo (logo-wordmark.png) in header and admin sidebar */
+.brand{display:inline-flex;align-items:center;line-height:0}
+.aside .brand{display:flex}
+.brand-logo{height:54px;width:auto;display:block}
+.aside .brand-logo{height:34px;background:#fff;border-radius:8px}
+@media (max-width:640px){.brand-logo{height:42px}}
+
+/* Checkout: payment method chooser (COD / online / advance) */
+#pmChooser{margin:0 0 12px}
+.pm-h{font-weight:800;font-size:.9rem;margin-bottom:8px}
+.pm-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#fff;border:2px solid var(--line,#e3e3e3);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;font:inherit;color:inherit}
+.pm-opt .pm-i{font-size:1.4rem;line-height:1}
+.pm-opt .pm-t{display:flex;flex-direction:column;gap:2px}
+.pm-opt .pm-t b{font-size:.9rem}
+.pm-opt .pm-t small{color:#666;font-size:.76rem;line-height:1.35}
+.pm-opt.on{border-color:var(--ae,#ff4747);background:#fff5f3}
+.pm-opt:disabled{opacity:.5;cursor:not-allowed}
+.pm-opt:focus-visible{outline:3px solid #ffb3a6;outline-offset:2px}
+#pmNote .pi-n{margin:0 0 10px}

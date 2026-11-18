@@ -248,12 +248,16 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   const btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
   const itemsArg = cart.map(i=>({product_id:i.id,qty:i.qty}));
   let res = null, error = null;
+  const mode = pay.mode || 'advance';
+  const codTag = mode==='cod' ? '[COD - cash on delivery] ' : '';
   const attempts = [
-    {p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg},
-    {p_name:name,p_phone:phone,p_address:address,p_city:city,p_items:itemsArg}
+    {fn:'place_order_v2', args:{p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg,p_payment_method:mode}},
+    {fn:'place_order', args:{p_name:name,p_phone:phone,p_email:email,p_address:codTag+address,p_city:city,p_items:itemsArg}},
+    {fn:'place_order', args:{p_name:name,p_phone:phone,p_address:codTag+address,p_city:city,p_items:itemsArg}}
   ];
-  for(const args of attempts){
-    let r; try{ r = await sb.rpc('place_order', args); }catch(ex){ r = {error:ex}; }
+  if(mode==='online') attempts.length = 1;   /* online payment needs the v2 function (supabase-payment-methods.sql) */
+  for(const {fn,args} of attempts){
+    let r; try{ r = await sb.rpc(fn, args); }catch(ex){ r = {error:ex}; }
     if(!r.error && r.data && r.data.code){ res = r.data; error = null; break; }
     error = r.error || new Error('Empty response from place_order');
     console.error('place_order failed', r.error || r);
@@ -261,25 +265,34 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
     if(!/could not find the function|schema cache|p_email|PGRST202/i.test(String((r.error&&(r.error.message||r.error.code))||''))) break;
   }
   if(btn) btn.disabled=false;
+  if(error && /COD_LIMIT/i.test(String(error.message||error.details||''))){
+    showPayStep(); document.getElementById('psMsg').innerHTML = '<div class="msg err">Cash on Delivery sirf '+esc(fmt(PAYMENT.cod.maxTotal))+' tak ke orders par available hai. Meherbani karke doosra tareeqa chunein.</div>'; return;
+  }
   if(error || !res){ showOrderFallback({name,phone,email,address,city,pay,err:(error&&(error.message||error.details||error.code))||'unknown'}); await loadPublic(); renderGrid(); return; }
   const code=res.code, order={items:res.items,subtotal:Number(res.subtotal)};
   await loadPublic();
   cart=[]; saveCart(); renderCart(); renderGrid();
   f.reset(); window._pay=null; clearShot(); closeM(checkoutOverlay); showCheckoutStep(1);
+  let onlineFailed = false;
+  if(mode==='online'){
+    rememberOrder(code, phone);
+    try{ await startOnlinePayment(code, phone); return; }catch(ex){ console.error('online payment start failed', ex); onlineFailed = true; }
+  }
   // Populate receipt
   document.getElementById('confirmCode').textContent = code;
   document.getElementById('receiptDate').textContent = new Date().toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'});
   document.getElementById('receiptCustomer').innerHTML =
-    `<div>👤 ${esc(name)}</div><div>📞 ${esc(phone)}</div><div>✉️ ${esc(email)}</div><div>📍 ${esc(address)}${city?', '+esc(city):''}</div><div>💳 Paid via ${esc(pay.method)} · TID ${esc(pay.tid)}</div><div>🧾 Screenshot ${pay.proofPath?'received':'— please send on WhatsApp'}</div>`;
+    `<div>👤 ${esc(name)}</div><div>📞 ${esc(phone)}</div><div>✉️ ${esc(email)}</div><div>📍 ${esc(address)}${city?', '+esc(city):''}</div>${payLines(pay, order.subtotal, onlineFailed)}`;
   document.getElementById('receiptItems').innerHTML = order.items.map(i=>
     `<div style="display:flex;justify-content:space-between"><span>${i.qty}× ${esc(i.name)}</span><span>${fmt(i.price*i.qty)}</span></div>`
   ).join('');
   document.getElementById('receiptTotal').textContent = fmt(order.subtotal);
   // WhatsApp: customer sends the order details to the store
   const lines = order.items.map(i=>`• ${i.qty}× ${i.name} — ${fmt(i.price*i.qty)}`).join('\n');
-  const waText = `Assalam o Alaikum! Naya order:\nOrder Code: ${code}\nNaam: ${name}\nPhone: ${phone}\nEmail: ${email}\nAddress: ${address}${city?', '+city:''}\n${lines}\nTotal: ${fmt(order.subtotal)}\nPayment: ${pay.method} — TID ${pay.tid} (advance payment)\n${pay.proofPath?'Payment screenshot website par upload kar diya hai.':'Payment ka screenshot is chat mein bhej raha/rahi hoon.'}`;
+  const waText = orderWaText({code,name,phone,email,address,city,lines,total:fmt(order.subtotal),pay,onlineFailed});
   document.getElementById('sendOrderWa').href = 'https://wa.me/'+STORE_WA+'?text='+encodeURIComponent(waText);
   window._waText = waText; window._waFile = pay.file || null;
+  applyReceiptMode(pay, order.subtotal);
   try{
     localStorage.setItem('usw_last_phone', phone);
     const mine = JSON.parse(localStorage.getItem('usw_my_orders')||'[]');
@@ -289,6 +302,69 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   openM(confirmOverlay);
 });
 
+
+/* ===== PAYMENT MODES: advance (manual) / Cash on Delivery / online gateway ===== */
+function rememberOrder(code, phone){
+  try{
+    localStorage.setItem('usw_last_phone', phone);
+    const mine = JSON.parse(localStorage.getItem('usw_my_orders')||'[]');
+    if(!mine.includes(code)){ mine.unshift(code); localStorage.setItem('usw_my_orders', JSON.stringify(mine.slice(0,50))); }
+  }catch(e){}
+}
+function payLines(pay, total, onlineFailed){
+  if(pay.mode==='cod') return `<div>💵 Cash on Delivery — pay ${esc(fmt(total))} to the courier</div>`;
+  if(pay.mode==='online') return `<div>💳 Online payment — ${onlineFailed?'not completed yet':'awaiting confirmation'}</div>`;
+  return `<div>💳 Paid via ${esc(pay.method)} · TID ${esc(pay.tid)}</div><div>🧾 Screenshot ${pay.proofPath?'received':'— please send on WhatsApp'}</div>`;
+}
+function orderWaText(o){
+  const pay = o.pay; let payLine;
+  if(pay.mode==='cod') payLine = `Payment: Cash on Delivery — ${o.total} courier ko delivery par dunga/dungi`;
+  else if(pay.mode==='online') payLine = `Payment: Online (PayFast) — ${o.onlineFailed?'payment page nahin khuli, meherbani karke payment ka tareeqa batayen':'order code ke saath payment ki ja rahi hai'}`;
+  else payLine = `Payment: ${pay.method} — TID ${pay.tid} (advance payment)\n${pay.proofPath?'Payment screenshot website par upload kar diya hai.':'Payment ka screenshot is chat mein bhej raha/rahi hoon.'}`;
+  return `Assalam o Alaikum! Naya order:\nOrder Code: ${o.code}\nNaam: ${o.name}\nPhone: ${o.phone}\nEmail: ${o.email}\nAddress: ${o.address}${o.city?', '+o.city:''}\n${o.lines}\nTotal: ${o.total}\n${payLine}`;
+}
+function applyReceiptMode(pay, total){
+  let chip='Payment submitted', bar='Payment submitted - pending check', stat='✅ Payment submitted — we will verify it and dispatch your order', waLbl='💬 Receipt + payment screenshot WhatsApp par bhejein';
+  if(pay.mode==='cod'){ chip='Cash on Delivery'; bar='Pay '+fmt(total)+' cash on delivery'; stat='✅ Order placed — we will confirm it with you. Pay '+fmt(total)+' in cash when it arrives'; waLbl='💬 Order WhatsApp par confirm karein'; }
+  else if(pay.mode==='online'){ chip='Payment pending'; bar='Online payment not completed'; stat='⏳ The payment page did not open. Your order is saved — please contact us on WhatsApp'; waLbl='💬 WhatsApp par rabta karein'; }
+  const st = document.getElementById('receiptStatus'); if(st) st.textContent = stat;
+  const wa = document.getElementById('sendOrderWa'); if(wa) wa.textContent = waLbl;
+  window._rcpt = {chip, bar};
+}
+/* Online gateway: the Supabase Edge Function (payfast-create) builds the signed payment request; we post it to the gateway. */
+async function startOnlinePayment(code, phone){
+  const g = PAYMENT.gateway || {};
+  const r = await sb.functions.invoke(g.fn || 'payfast-create', { body:{ code, phone } });
+  const j = r.data;
+  if(r.error || !j || !j.action || !j.fields) throw new Error((r.error&&r.error.message) || (j&&j.error) || 'gateway did not answer');
+  const form = document.createElement('form'); form.method = 'POST'; form.action = j.action; form.style.display = 'none';
+  Object.keys(j.fields).forEach(k=>{ const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = String(j.fields[k]); form.appendChild(i); });
+  document.body.appendChild(form); form.submit();
+}
+/* Customer comes back from the gateway: ?pay=success|failed&code=XXXX (informational only — the real status is set by the payfast-webhook function) */
+function handlePayReturn(){
+  let q; try{ q = new URLSearchParams(location.search); }catch(e){ return; }
+  const st = q.get('pay'), code = (q.get('code')||'').replace(/[^A-Za-z0-9\-]/g,'').slice(0,30);
+  if(!st || !code || (st!=='success' && st!=='failed')) return;
+  const box = document.createElement('div');
+  box.setAttribute('role','status');
+  box.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:9999;max-width:520px;margin:0 auto;padding:14px 40px 14px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);font-size:.9rem;line-height:1.5;color:#fff;background:'+(st==='success'?'#0a8a43':'#c0392b');
+  box.innerHTML = st==='success'
+    ? '<b>Shukriya!</b> Order <b>'+esc(code)+'</b> ki payment ka status verify ho raha hai. Confirm hone par hum dispatch kar denge.'
+    : '<b>Payment mukammal nahin hui.</b> Order <b>'+esc(code)+'</b> abhi pending hai — dobara koshish karein ya WhatsApp par rabta karein.';
+  const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label','Close');
+  x.style.cssText = 'position:absolute;right:8px;top:6px;background:none;border:0;color:#fff;font-size:1.5rem;cursor:pointer';
+  x.onclick = ()=>box.remove(); box.appendChild(x); document.body.appendChild(box);
+  rememberOrder(code, localStorage.getItem('usw_last_phone')||'');
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+}
+function payBadge(o){
+  const m = o.payment_method || (/^\[COD/i.test(o.address||'') ? 'cod' : '');
+  if(!m) return '';
+  let t = m==='cod' ? '💵 COD' : m==='online' ? ('💳 Online · '+(o.payment_status||'unpaid')) : '📲 Advance';
+  return `<div style="font-size:.72rem;font-weight:700;color:${m==='cod'?'#b45309':'#555'}">${esc(t)}</div>`;
+}
+
 /* ===== RECEIPT DOWNLOAD ===== */
 document.getElementById('downloadReceiptBtn').addEventListener('click', downloadReceipt);
 
@@ -296,6 +372,7 @@ function downloadReceipt(){
   const code   = document.getElementById('confirmCode').textContent;
   const date   = document.getElementById('receiptDate').textContent;
   const total  = document.getElementById('receiptTotal').textContent;
+  const RC = window._rcpt || {chip:'Payment submitted', bar:'Payment submitted - pending check'};
   const custLines = document.getElementById('receiptCustomer').innerText.trim().split('\n').map(l=>l.trim()).filter(Boolean);
   const rows = [...document.getElementById('receiptItems').children].map(d=>{
     const sp = d.querySelectorAll('span');
@@ -332,9 +409,9 @@ function downloadReceipt(){
     T('ORDER CODE', X0, y, `700 11px ${SANS}`, '#8a8070'); y += 34;
     T(code, X0, y, `700 32px ${SERIF}`, '#000000'); y += 16;
     // status chip
-    ctx.font = `700 12px ${SANS}`; const cw = ctx.measureText('Payment submitted').width + 28;
+    ctx.font = `700 12px ${SANS}`; const cw = ctx.measureText(RC.chip).width + 28;
     if(!dry){ ctx.fillStyle='#000000'; rr(ctx,X0,y,cw,26,13); ctx.fill(); }
-    T('Payment submitted', X0+14, y+17.5, `700 12px ${SANS}`, '#ffffff'); y += 26+18;
+    T(RC.chip, X0+14, y+17.5, `700 12px ${SANS}`, '#ffffff'); y += 26+18;
     dash(y); y += 24;
 
     // customer
@@ -360,7 +437,7 @@ function downloadReceipt(){
 
     // COD
     if(!dry){ ctx.fillStyle='#000000'; rr(ctx,X0,y,CW,44,10); ctx.fill(); }
-    T('Payment submitted - pending check', W/2, y+27, `700 14px ${SANS}`, '#ffffff', 'center');
+    T(RC.bar, W/2, y+27, `700 14px ${SANS}`, '#ffffff', 'center');
     y += 44 + 24;
 
     // footer
@@ -725,8 +802,16 @@ const PAYMENT = { methods: [
   {label:'JazzCash', title:'Muhammad Ahmad', number:'0329 6063123'},
   {label:'EasyPaisa', title:'Muhammad Ahmad', number:'0329 6063123'},
   {label:'SadaPay', title:'Muhammad Ahmad', number:'0329 6063123'}
-], note:'' };
+], note:'',
+  /* Cash on Delivery: only for orders up to maxTotal (Rs.). Keep the same number in supabase-payment-methods.sql */
+  cod:{ enabled:true, maxTotal:3000 },
+  /* Online gateway (PayFast: cards + JazzCash + EasyPaisa). Keep enabled:false until PAYMENTS-SETUP.md is done. */
+  gateway:{ enabled:false, label:'Card / JazzCash / EasyPaisa (online)', fn:'payfast-create' } };
+(function(){ const t = fmt(PAYMENT.cod.maxTotal); document.querySelectorAll('[data-cod-max]').forEach(e=>{ e.textContent = t; }); })();
 function fillPayInstr(code, total, pay){
+  const _pi = document.getElementById('payInstr');
+  if(pay.mode==='cod'){ _pi.innerHTML = `<div class="pi-h">✅ Order placed — Cash on Delivery</div><div class="pi-t">Please keep <b>${fmt(total)}</b> ready and pay the courier when your parcel arrives.</div><div class="pi-n">We may call or WhatsApp you to confirm the order before dispatch, so please keep your phone reachable.</div>`; return; }
+  if(pay.mode==='online'){ _pi.innerHTML = `<div class="pi-h">⚠️ Online payment not completed</div><div class="pi-t">Your order <b>${esc(code)}</b> is saved, but the payment page could not be opened.</div><div class="pi-n">Please message us on WhatsApp with your order code and we will help you pay.</div>`; return; }
   document.getElementById('payInstr').innerHTML =
     `<div class="pi-h">✅ Payment details received</div>` +
     `<div class="pi-t">${fmt(total)} via <b>${esc(pay.method)}</b> · TID <b>${esc(pay.tid)}</b></div>` +
@@ -742,11 +827,11 @@ const newsletterForm=document.getElementById('newsletterForm'); if(newsletterFor
 const INFO_PAGES = {
   about: { title:'About Us', html:`
     <p>AhmaMart is an online store bringing everyday essentials to your doorstep, right here in Pakistan.</p>
-    <p>We believe shopping should be simple and reliable — browse, order, pay in advance, and we deliver to your door.</p>
+    <p>We believe shopping should be simple and reliable — browse, order, pay in advance (or on delivery for small orders), and we deliver to your door.</p>
     <p>We're based in Usmanwala, Kasur, Punjab, and we're growing every day thanks to customers like you.</p>` },
   faq: { title:'Frequently Asked Questions', html:`
     <p><strong>How do I place an order?</strong><br>Add items to your cart, go to checkout, and fill in your name, phone number, and address. No account or card needed.</p>
-    <p><strong>How does payment work?</strong><br>Payment is made in advance. After placing your order, send your payment screenshot to us on WhatsApp with your order code. We process your order once the payment is confirmed.</p>
+    <p><strong>How does payment work?</strong><br>You can pay in advance — send the amount to our JazzCash, EasyPaisa or SadaPay account, then add the transaction ID and your payment screenshot at checkout — and we process your order once the payment is confirmed. For small orders (up to ${fmt(PAYMENT.cod.maxTotal)}) you can also choose <b>Cash on Delivery</b> and pay the courier when your parcel arrives.</p>
     <p><strong>How long does delivery take?</strong><br>Most orders arrive within 2–5 business days, depending on your city.</p>
     <p><strong>How do I track my order?</strong><br>Use "Track order" or "My orders" at the top of the site with your order code and phone number.</p>
     <p><strong>Can I cancel my order?</strong><br>Yes, as long as it hasn't been dispatched yet. Contact us with your order code and we'll help right away.</p>` },
@@ -757,15 +842,15 @@ const INFO_PAGES = {
     <p>💬 WhatsApp: <a href="https://wa.me/923296063123" target="_blank" rel="noopener" style="color:var(--gold)">Chat with us</a></p>
     <p>📍 Address: Usmanwala, Kasur, Punjab, Pakistan</p>` },
   shipping: { title:'Shipping Policy', html:`
-    <p>We currently deliver across Pakistan. Orders are dispatched after your advance payment is confirmed.</p>
-    <p><strong>Delivery time:</strong> typically 2–5 business days from when your payment is confirmed, depending on your city and courier availability.</p>
+    <p>We currently deliver across Pakistan. Advance-payment orders are dispatched after your payment is confirmed; Cash on Delivery orders are dispatched once we have confirmed the order with you.</p>
+    <p><strong>Delivery time:</strong> typically 2–5 business days from when your order is confirmed, depending on your city and courier availability.</p>
     <p><strong>Delivery charges:</strong> any delivery fee, if applicable, is shown clearly at checkout before you confirm your order.</p>
     <p><strong>Order confirmation:</strong> you'll receive an order code right after checkout — keep it along with your phone number to track your delivery.</p>
     <p>If your order is delayed beyond the expected window, contact us with your order code and we'll look into it right away.</p>` },
   refund: { title:'Return, Refund & Cancellation', html:`
     <p><strong>Cancellations:</strong> you can cancel your order any time before it's dispatched by contacting us with your order code.</p>
     <p><strong>Returns:</strong> if an item arrives damaged, incorrect, or not as described, let us know within 3 days of delivery with your order code and a photo of the item, and we'll arrange a replacement or refund.</p>
-    <p><strong>Refunds:</strong> since orders are paid in advance, approved refunds are processed via bank transfer or mobile wallet to the details you provide — we'll confirm the method with you directly.</p>
+    <p><strong>Refunds:</strong> for orders paid in advance or online, approved refunds are processed via bank transfer or mobile wallet to the details you provide — we'll confirm the method with you directly. Approved refunds on Cash on Delivery orders are handled the same way.</p>
     <p>Items must be unused and in their original packaging to be eligible for return, unless the issue is a defect or wrong item received.</p>` },
   privacy: { title:'Privacy Policy', html:`
     <p>We collect only the information needed to process your order: your name, phone number, and delivery address.</p>
@@ -776,7 +861,7 @@ const INFO_PAGES = {
   terms: { title:'Terms of Service', html:`
     <p>By placing an order on AhmaMart, you agree to provide accurate name, phone number, and address so your order can be delivered successfully.</p>
     <p>Prices and product availability are subject to change without prior notice. We'll always confirm your order total before delivery.</p>
-    <p>Payment is made in advance, in full, using the payment details we share with you. Orders are processed and dispatched once your payment is confirmed.</p>
+    <p>Payment is made either (a) in advance, in full, using the payment details we share with you or our online payment option — orders are dispatched once your payment is confirmed — or (b) in cash to the courier on delivery, available only on orders up to ${fmt(PAYMENT.cod.maxTotal)}.</p>
     <p>For any disputes or questions, please reach out to us directly before taking any other action — we're happy to help.</p>` }
 };
 const infoOverlay = document.getElementById('infoOverlay');
@@ -911,7 +996,7 @@ async function stockProblem(){
 }
 function showOrderFallback(info){
   const lines = cart.map(i=>`• ${i.qty}× ${i.name} — ${fmt(i.price*i.qty)}`).join('\n');
-  const text = `Assalam o Alaikum! Maine payment kar di hai lekin website par mera order save nahi hua. Meherbani karke order confirm kar dein:\nNaam: ${info.name}\nPhone: ${info.phone}\nEmail: ${info.email}\nAddress: ${info.address}${info.city?', '+info.city:''}\n${lines}\nTotal: ${fmt(payTotal())}\nPayment: ${info.pay.method} — TID ${info.pay.tid}\n${info.pay.proofPath?'Screenshot website par upload ho chuka hai.':'Screenshot is chat mein bhej raha/rahi hoon.'}`;
+  const text = `Assalam o Alaikum! ${info.pay.mode==='cod'?'Maine Cash on Delivery order kiya tha lekin website par mera order save nahi hua.':'Maine payment kar di hai lekin website par mera order save nahi hua.'} Meherbani karke order confirm kar dein:\nNaam: ${info.name}\nPhone: ${info.phone}\nEmail: ${info.email}\nAddress: ${info.address}${info.city?', '+info.city:''}\n${lines}\nTotal: ${fmt(payTotal())}\n${info.pay.mode==='cod'?'Payment: Cash on Delivery':'Payment: '+info.pay.method+' — TID '+info.pay.tid+'\n'+(info.pay.proofPath?'Screenshot website par upload ho chuka hai.':'Screenshot is chat mein bhej raha/rahi hoon.')}`;
   window._failText = text; window._failFile = info.pay.file || null;
   document.getElementById('failWa').href = 'https://wa.me/'+STORE_WA+'?text='+encodeURIComponent(text);
   document.getElementById('failDetail').textContent = 'Technical details: ' + (info.err||'');
@@ -919,10 +1004,10 @@ function showOrderFallback(info){
   openM(document.getElementById('failOverlay'));
 }
 function showCheckoutStep(n){
-  const pc = document.getElementById('psConfirm'); if(pc){ pc.disabled = false; pc.textContent = 'I have paid — Place order'; }
+  const pc = document.getElementById('psConfirm'); if(pc){ pc.disabled = false; pc.textContent = payBtnLabel(); }
   const f = document.getElementById('checkoutForm'), ps = document.getElementById('payStep'); if(!f||!ps) return;
   f.style.display = n===1 ? 'block' : 'none'; ps.style.display = n===2 ? 'block' : 'none';
-  document.getElementById('coTitle').textContent = n===1 ? 'Delivery details' : 'Pay in advance';
+  document.getElementById('coTitle').textContent = n===1 ? 'Delivery details' : 'Payment';
   [...document.getElementById('coSteps').children].forEach((el,i)=>el.classList.toggle('on', i < n));
   if(n===1){ const m=document.getElementById('psMsg'); if(m) m.innerHTML=''; }
 }
@@ -931,8 +1016,34 @@ function copyText(t, btn){
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, done);
   else { const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} ta.remove(); done(); }
 }
+function codAllowed(total){ const c = PAYMENT.cod || {}; return !!c.enabled && total <= Number(c.maxTotal||0); }
+function payModes(total){
+  const g = PAYMENT.gateway || {}, c = PAYMENT.cod || {}, list = [];
+  if(g.enabled) list.push({id:'online', icon:'💳', title:g.label||'Pay online (card / wallet)', sub:'Secure online payment — confirmed automatically', ok:true});
+  if(c.enabled) list.push({id:'cod', icon:'💵', title:'Cash on Delivery', ok: total <= Number(c.maxTotal||0),
+    sub: total <= Number(c.maxTotal||0) ? 'Pay the courier when your parcel arrives' : 'Only for orders up to '+fmt(c.maxTotal)+' (your order is '+fmt(total)+')'});
+  list.push({id:'advance', icon:'📲', title:'Pay in advance (JazzCash / EasyPaisa / SadaPay)', sub:'Send the amount, then add the transaction ID and a screenshot', ok:true});
+  return list;
+}
+function payBtnLabel(){ const m = window._payMode || 'advance'; return m==='cod' ? 'Place order — Cash on Delivery' : m==='online' ? 'Pay online now' : 'I have paid — Place order'; }
+function setPayMode(mode){
+  window._payMode = mode;
+  const ps = document.getElementById('payStep'), manual = mode==='advance';
+  const hide = (el, h)=>{ if(el) el.style.display = h ? 'none' : ''; };
+  hide(ps.querySelector('.ps-steps'), !manual); hide(document.getElementById('psAccounts'), !manual);
+  ['psMethod','psTid'].forEach(id=>hide(document.getElementById(id).closest('.field'), !manual));
+  hide(document.getElementById('psShotBox').closest('.field'), !manual);
+  hide(document.getElementById('psCopyAmt'), !manual);
+  hide(ps.querySelector(':scope > p.pi-n'), !manual);
+  const lbl = ps.querySelector('.ps-amount span'); if(lbl) lbl.textContent = mode==='cod' ? 'Amount to pay on delivery' : 'Amount to pay';
+  const note = document.getElementById('pmNote');
+  note.innerHTML = mode==='cod' ? '<div class="pi-n">Keep the exact amount ready for the courier. We may call or WhatsApp you to confirm the order before dispatch.</div>'
+    : mode==='online' ? '<div class="pi-n">You will be taken to a secure payment page (card, JazzCash or EasyPaisa). Your order is confirmed once the payment succeeds.</div>' : '';
+  ps.querySelectorAll('.pm-opt').forEach(b=>{ const on = b.dataset.m===mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on?'true':'false'); });
+  const pc = document.getElementById('psConfirm'); if(pc && !pc.disabled) pc.textContent = payBtnLabel();
+}
 function showPayStep(){
-  const total = payTotal();
+  const total = payTotal(), ps = document.getElementById('payStep');
   document.getElementById('psAmt').textContent = fmt(total);
   document.getElementById('psCopyAmt').onclick = e=>copyText(String(Math.round(total)), e.target);
   const ms = PAYMENT.methods || [];
@@ -941,7 +1052,15 @@ function showPayStep(){
   document.getElementById('psAccounts').querySelectorAll('.copy').forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.n, b)));
   document.getElementById('psMethod').innerHTML = ms.map(m=>`<option>${esc(m.label)}</option>`).join('') + '<option>Other</option>';
   document.getElementById('psMsg').innerHTML = '';
-  showCheckoutStep(2);
+  /* payment method chooser */
+  let ch = document.getElementById('pmChooser');
+  if(!ch){ ch = document.createElement('div'); ch.id = 'pmChooser'; ps.insertBefore(ch, ps.firstChild); }
+  if(!document.getElementById('pmNote')){ const n = document.createElement('div'); n.id = 'pmNote'; ps.insertBefore(n, document.getElementById('psMsg')); }
+  const list = payModes(total);
+  ch.innerHTML = list.length > 1 ? '<div class="pm-h">How would you like to pay?</div>' + list.map(o=>`<button type="button" class="pm-opt" data-m="${o.id}" aria-pressed="false" ${o.ok?'':'disabled'}><span class="pm-i">${o.icon}</span><span class="pm-t"><b>${esc(o.title)}</b><small>${esc(o.sub)}</small></span></button>`).join('') : '';
+  ch.querySelectorAll('.pm-opt').forEach(b=>b.addEventListener('click',()=>setPayMode(b.dataset.m)));
+  let mode = window._payMode; if(!list.some(o=>o.id===mode && o.ok)) mode = (list.find(o=>o.ok)||{id:'advance'}).id;
+  showCheckoutStep(2); setPayMode(mode);
 }
 (function(){
   const fo = document.getElementById('failOverlay');
@@ -952,6 +1071,16 @@ function showPayStep(){
   const confirmBtn = document.getElementById('psConfirm'), back = document.getElementById('psBack');
   if(back) back.addEventListener('click', ()=>showCheckoutStep(1));
   if(confirmBtn) confirmBtn.addEventListener('click', async ()=>{
+    const pmode = window._payMode || 'advance';
+    if(pmode==='cod' || pmode==='online'){
+      const m0 = document.getElementById('psMsg');
+      if(pmode==='cod' && !codAllowed(payTotal())){ m0.innerHTML = '<div class="msg err">Cash on Delivery sirf '+esc(fmt(PAYMENT.cod.maxTotal))+' tak ke orders par available hai.</div>'; return; }
+      m0.innerHTML = ''; confirmBtn.disabled = true; confirmBtn.textContent = pmode==='cod' ? 'Placing your order…' : 'Preparing secure payment…';
+      window._pay = pmode==='cod' ? {method:'Cash on Delivery', tid:'—', mode:'cod'} : {method:'Online payment', tid:'—', mode:'online'};
+      window._payConfirmed = true;
+      document.getElementById('checkoutForm').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+      return;
+    }
     const tid = document.getElementById('psTid').value.trim(), method = document.getElementById('psMethod').value, m = document.getElementById('psMsg');
     if(!/^[A-Za-z0-9\-]{6,}$/.test(tid)){ m.innerHTML = '<div class="msg err">Please enter the transaction ID (TID) from your payment, at least 6 characters.</div>'; return; }
     if(!window._shotBlob){ m.innerHTML = '<div class="msg err">Please attach your payment screenshot to place the order.</div>'; return; }
@@ -959,7 +1088,7 @@ function showPayStep(){
     const phone = document.querySelector('#checkoutForm [name=phone]').value;
     const proofPath = await uploadProof(window._shotBlob, phone, tid);
     confirmBtn.textContent = 'Placing your order…';
-    window._pay = {method, tid, proofPath, file: window._shotBlob}; window._payConfirmed = true;
+    window._pay = {method, tid, proofPath, file: window._shotBlob, mode:'advance'}; window._payConfirmed = true;
     document.getElementById('checkoutForm').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
   });
   const ov = document.getElementById('checkoutOverlay');
@@ -970,7 +1099,7 @@ function renderOrdAdmin(){
     <tr>
       <td>${esc(o.code)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td>
       <td style="max-width:320px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
-      <td>${fmt(o.subtotal)}</td>
+      <td>${fmt(o.subtotal)}${payBadge(o)}</td>
       <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
         ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
       </select></td>
@@ -1168,7 +1297,7 @@ function showProduct(rawId){
           <button class="btn alt" type="button" id="ppCart" ${inStock?'':'disabled'}>Add to cart</button>
         </div>
         <a class="pp-wa" target="_blank" rel="noopener" href="https://wa.me/${STORE_WA}?text=${encodeURIComponent(waText)}">💬 Ask about this product on WhatsApp</a>
-        <ul class="pp-trust"><li>💳 Pay in advance — we dispatch once payment is confirmed</li><li>🚚 Delivery across Pakistan, usually 2–5 business days</li><li>↩️ 3-day returns for damaged or wrong items</li></ul>
+        <ul class="pp-trust"><li>💳 Pay in advance, or Cash on Delivery on small orders</li><li>🚚 Delivery across Pakistan, usually 2–5 business days</li><li>↩️ 3-day returns for damaged or wrong items</li></ul>
       </div>
     </div>
     <div class="pp-desc"><h2>Product details</h2><div>${esc(p.description||'No additional details are available for this product yet.')}</div></div>
@@ -1359,3 +1488,5 @@ function prefillCheckout(){
   slides.addEventListener('touchend',e=>{ if(x0===null) return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40){ go(i+(dx<0?1:-1)); play(); } x0=null; });
   play();
 })();
+
+(function(){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', handlePayReturn); else handlePayReturn(); })();
