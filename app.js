@@ -1,17 +1,31 @@
 const fmt = n => 'Rs. ' + Number(n).toLocaleString('en-PK',{maximumFractionDigits:0});
 
 const sb = supabase.createClient('https://wfdedrzkqtndnqulvpos.supabase.co','sb_publishable_zbw6qV6FQARxUcuWi9vtrw_brjtRecp');
-let DB = {categories:[],products:[],orders:[],images:{}};
+let DB = {categories:[],products:[],orders:[],images:{},variants:{}};
 let pendingBlob = null;
 const esc = t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function loadPublic(){
-  const [c,p,pi]=await Promise.all([sb.from('categories').select('*').order('id'),sb.from('products').select('*').order('id'),sb.from('product_images').select('*').order('sort_order')]);
+  const [c,p,pi,pv]=await Promise.all([sb.from('categories').select('*').order('id'),sb.from('products').select('*').order('id'),sb.from('product_images').select('*').order('sort_order'),sb.from('product_variants').select('*').order('sort_order').order('id')]);
   if(c.error||p.error){ console.error(c.error||p.error); document.getElementById('grid').innerHTML='<p style="padding:24px;text-align:center">Store load nahin ho saka. Page refresh karein.</p>'; return; }
   DB.categories=c.data; DB.products=p.data; DB.loaded=true;
   DB.images = {};
   if(!pi.error) for(const row of pi.data){ (DB.images[row.product_id] ||= []).push(row); }
-  try{ localStorage.setItem('ahma_cache_v1',JSON.stringify({c:DB.categories,p:DB.products,i:DB.images})); }catch(e){}
+  /* variants: if supabase-variants.sql has not been run yet, the table is missing and every product simply has no variants */
+  DB.variants = {};
+  if(!pv.error) for(const row of pv.data){ (DB.variants[row.product_id] ||= []).push(row); }
+  try{ localStorage.setItem('ahma_cache_v1',JSON.stringify({c:DB.categories,p:DB.products,i:DB.images,v:DB.variants})); }catch(e){}
 }
+/* ===== Product variants (Size / Colour ...) =====
+   A variant = one combination, e.g. [{n:'Size',v:'M'},{n:'Colour',v:'Red'}], with its own stock. */
+const variantsOf = p => (p && DB.variants[p.id]) || [];
+const hasVariants = p => variantsOf(p).length > 0;
+const vLabel = v => ((v && v.options) || []).map(o=>o.v).join(' / ');
+const optVal = (v,n) => { const o=((v&&v.options)||[]).find(o=>o.n===n); return o?o.v:undefined; };
+function vOptionNames(vs){ const out=[]; vs.forEach(v=>(v.options||[]).forEach(o=>{ if(!out.includes(o.n)) out.push(o.n); })); return out; }
+function vOptionValues(vs,n){ const out=[]; vs.forEach(v=>{ const x=optVal(v,n); if(x!==undefined && !out.includes(x)) out.push(x); }); return out; }
+/* cart lines are identified by product id + variant id */
+const cartKey = i => String(i.id) + (i.vid ? '-' + i.vid : '');
+const cartName = i => i.vlabel ? i.name + ' (' + i.vlabel + ')' : i.name;
 function productGallery(p){
   const extra = (DB.images[p.id]||[]).map(r=>r.image_url);
   return [p.image_url, ...extra].filter(Boolean);
@@ -85,7 +99,7 @@ function productCardHTML(p){
         <div class="cname">${esc(p.name)}</div>
         <div class="prow"><span class="price">${fmt(p.price)}</span>${p.compare_at_price?`<span class="pcompare">${fmt(p.compare_at_price)}</span>`:''}</div>
         <div class="ctags"><span class="tag cod">Delivery across Pakistan</span>${low?`<span class="tag low">Only ${p.stock} left</span>`:''}</div>
-        <button class="addbtn" data-id="${p.id}" ${p.stock<=0?'disabled':''}>${p.stock<=0?'Out of stock':'Add to cart'}</button>
+        <button class="addbtn" data-id="${p.id}" ${p.stock<=0?'disabled':''}>${p.stock<=0?'Out of stock':(hasVariants(p)?'Select options':'Add to cart')}</button>
       </div>
     </div>`;
 }
@@ -150,16 +164,32 @@ function renderFeatureCollections(){
 
 function addToCart(id){
   const p = DB.products.find(p=>p.id===id); if(!p) return;
-  const ex = cart.find(i=>i.id===id);
+  if(hasVariants(p)){ openProductDetail(p.id); return; }   /* size/colour must be chosen on the product page */
+  const ex = cart.find(i=>i.id===id && !i.vid);
   if(ex){ if(ex.qty<p.stock) ex.qty++; } else { cart.push({id:p.id,name:p.name,price:p.price,image_url:p.image_url,qty:1,stock:p.stock}); }
   saveCart(); renderCart(); openCart();
 }
-function changeQty(id,d){
-  const it = cart.find(i=>i.id===id); if(!it) return;
+function changeQty(key,d){
+  const it = cart.find(i=>cartKey(i)===key); if(!it) return;
   it.qty += d;
-  if(it.qty<=0) cart = cart.filter(i=>i.id!==id);
+  if(it.qty<=0) cart = cart.filter(i=>cartKey(i)!==key);
   else if(it.qty>it.stock) it.qty = it.stock;
   saveCart(); renderCart();
+}
+/* after reloading stock from the server: drop lines whose product/variant is gone or sold out, and trim quantities */
+function reconcileCart(){
+  cart = cart.filter(i=>{
+    const p = DB.products.find(x=>x.id===i.id); if(!p) return false;
+    if(hasVariants(p)){
+      const v = i.vid ? variantsOf(p).find(x=>x.id===i.vid) : null;
+      if(!v) return false;
+      i.stock = Number(v.stock); i.vlabel = vLabel(v);
+    } else if(i.vid){ return false; }
+    else i.stock = Number(p.stock);
+    if(i.stock <= 0) return false;
+    if(i.qty > i.stock) i.qty = i.stock;
+    return true;
+  });
 }
 function subtotal(){ return cart.reduce((s,i)=>s+i.price*i.qty,0); }
 function renderCart(){
@@ -172,16 +202,17 @@ function renderCart(){
       <div class="cthumb">${i.image_url?`<img src="${i.image_url}">`:''}</div>
       <div style="flex:1">
         <div style="font-weight:600;font-size:.9rem">${i.name}</div>
+        ${i.vlabel?`<div class="citem-var">${esc(i.vlabel)}</div>`:''}
         <div style="color:var(--gold);font-weight:700;font-size:.88rem">${fmt(i.price)}</div>
         <div class="qtyrow">
-          <button class="qtybtn" data-id="${i.id}" data-d="-1">−</button><span>${i.qty}</span>
-          <button class="qtybtn" data-id="${i.id}" data-d="1">+</button>
-          <button class="rmv" data-id="${i.id}">Remove</button>
+          <button class="qtybtn" data-key="${cartKey(i)}" data-d="-1">−</button><span>${i.qty}</span>
+          <button class="qtybtn" data-key="${cartKey(i)}" data-d="1">+</button>
+          <button class="rmv" data-key="${cartKey(i)}">Remove</button>
         </div>
       </div>
     </div>`).join('');
-  body.querySelectorAll('.qtybtn').forEach(b=>b.addEventListener('click',()=>changeQty(Number(b.dataset.id),Number(b.dataset.d))));
-  body.querySelectorAll('.rmv').forEach(b=>b.addEventListener('click',()=>{cart=cart.filter(i=>i.id!==Number(b.dataset.id));saveCart();renderCart();}));
+  body.querySelectorAll('.qtybtn').forEach(b=>b.addEventListener('click',()=>changeQty(b.dataset.key,Number(b.dataset.d))));
+  body.querySelectorAll('.rmv').forEach(b=>b.addEventListener('click',()=>{cart=cart.filter(i=>cartKey(i)!==b.dataset.key);saveCart();renderCart();}));
   document.getElementById('subtotal').textContent = fmt(subtotal());
 }
 
@@ -246,7 +277,8 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   }
   const pay = window._pay || {method:'-',tid:'-'}; window._payConfirmed = false;
   const btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
-  const itemsArg = cart.map(i=>({product_id:i.id,qty:i.qty}));
+  const itemsArg = cart.map(i=>i.vid ? {product_id:i.id,variant_id:i.vid,qty:i.qty} : {product_id:i.id,qty:i.qty});
+  const hasVarItems = cart.some(i=>i.vid);
   let res = null, error = null;
   const mode = pay.mode || 'advance';
   const codTag = mode==='cod' ? '[COD - cash on delivery] ' : '';
@@ -256,6 +288,8 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
     {fn:'place_order', args:{p_name:name,p_phone:phone,p_address:codTag+address,p_city:city,p_items:itemsArg}}
   ];
   if(mode==='online') attempts.length = 1;   /* online payment needs the v2 function (supabase-payment-methods.sql) */
+  /* carts with size/colour variants must go through place_order_v3 (supabase-variants.sql): it is the one that reduces the variant's stock */
+  if(hasVarItems) attempts.splice(0, attempts.length, {fn:'place_order_v3', args:{p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg,p_payment_method:mode}});
   for(const {fn,args} of attempts){
     let r; try{ r = await sb.rpc(fn, args); }catch(ex){ r = {error:ex}; }
     if(!r.error && r.data && r.data.code){ res = r.data; error = null; break; }
@@ -267,6 +301,11 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   if(btn) btn.disabled=false;
   if(error && /COD_LIMIT/i.test(String(error.message||error.details||''))){
     showPayStep(); document.getElementById('psMsg').innerHTML = '<div class="msg err">Cash on Delivery sirf '+esc(fmt(PAYMENT.cod.maxTotal))+' tak ke orders par available hai. Meherbani karke doosra tareeqa chunein.</div>'; return;
+  }
+  if(error && /OUT_OF_STOCK|VARIANT_REQUIRED/i.test(String(error.message||error.details||''))){
+    await loadPublic(); reconcileCart(); saveCart(); renderCart(); renderGrid();
+    showCheckoutStep(1);
+    msg.innerHTML = '<div class="msg err">Sorry, ek item abhi stock se khatam ho gaya ya uski quantity kam reh gayi. Cart update kar diya gaya hai — meherbani karke dekh lein aur dobara order karein.</div>'; return;
   }
   if(error || !res){ showOrderFallback({name,phone,email,address,city,pay,err:(error&&(error.message||error.details||error.code))||'unknown'}); await loadPublic(); renderGrid(); return; }
   const code=res.code, order={items:res.items,subtotal:Number(res.subtotal)};
@@ -535,11 +574,40 @@ document.getElementById('loginForm').addEventListener('submit',async e=>{
 document.querySelectorAll('.nitem[data-tab]').forEach(item=>{
   item.addEventListener('click',()=>{
     document.querySelectorAll('.nitem[data-tab]').forEach(i=>i.classList.remove('on')); item.classList.add('on');
-    ['dash','prod','cat','ord','pay','cust'].forEach(t=>document.getElementById('tab-'+t).style.display = t===item.dataset.tab?'block':'none');
+    ['dash','prod','cat','ord','pay','cust','subs'].forEach(t=>document.getElementById('tab-'+t).style.display = t===item.dataset.tab?'block':'none');
   });
 });
 
-async function refreshAdmin(){ await loadOrders(); renderStats(); renderCatAdmin(); renderProdAdmin(); renderOrdAdmin(); renderCustAdmin(); }
+async function refreshAdmin(){ await loadOrders(); renderStats(); renderCatAdmin(); renderProdAdmin(); renderOrdAdmin(); renderCustAdmin(); loadSubscribers(); }
+
+/* ===== Newsletter subscribers (admin) ===== */
+async function loadSubscribers(){
+  const body=document.getElementById('subsBody'); if(!body) return;
+  const r=await sb.from('newsletter_subscribers').select('*').order('created_at',{ascending:false});
+  if(r.error){
+    console.error(r.error); window._subsList=[];
+    body.innerHTML='<tr><td colspan="3" style="color:var(--ink-soft);white-space:normal">Could not load subscribers ('+esc(r.error.message||'')+'). Run <b>supabase-newsletter.sql</b> in the Supabase SQL Editor once.</td></tr>';
+    return;
+  }
+  window._subsList=r.data;
+  body.innerHTML=r.data.length ? r.data.map(s=>`
+    <tr><td>${esc(s.email)}</td>
+    <td>${s.created_at?new Date(s.created_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
+    <td><button class="sm" onclick="deleteSubscriber(${Number(s.id)})">Remove</button></td></tr>`).join('')
+    : '<tr><td colspan="3" style="color:var(--ink-soft)">No subscribers yet.</td></tr>';
+}
+async function deleteSubscriber(id){
+  if(!confirm('Remove this subscriber?')) return;
+  const r=await sb.from('newsletter_subscribers').delete().eq('id',id);
+  if(r.error){ alert(r.error.message); return; }
+  loadSubscribers();
+}
+function exportSubscribers(){
+  const list=window._subsList||[]; if(!list.length){ alert('No subscribers to export yet.'); return; }
+  const csv='email,subscribed_at\n'+list.map(s=>'"'+String(s.email).replace(/"/g,'""')+'",'+(s.created_at||'')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ahmamart-subscribers.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+(function(){ const b=document.getElementById('subsExport'); if(b) b.addEventListener('click',exportSubscribers); })();
 
 function renderStats(){
   const totalProducts = DB.products.length;
@@ -551,8 +619,9 @@ function renderStats(){
     <div class="stat"><div class="n">${totalOrders}</div><div class="l">Total orders</div></div>
     <div class="stat"><div class="n">${pending}</div><div class="l">Pending orders</div></div>
     <div class="stat"><div class="n">${fmt(revenue)}</div><div class="l">Revenue</div></div>`;
-  const low = DB.products.filter(p=>p.stock<=5);
-  document.getElementById('lowStockBody').innerHTML = low.length? low.map(p=>`<tr><td>${p.name}</td><td>${p.stock}</td></tr>`).join('') : `<tr><td colspan="2" style="color:var(--ink-soft)">Nothing low on stock.</td></tr>`;
+  const low = [];   /* products without variants: product stock; products with variants: each low variant */
+  DB.products.forEach(p=>{ if(hasVariants(p)) variantsOf(p).forEach(v=>{ if(Number(v.stock)<=5) low.push({name:p.name+' ('+vLabel(v)+')', stock:v.stock}); }); else if(p.stock<=5) low.push({name:p.name, stock:p.stock}); });
+  document.getElementById('lowStockBody').innerHTML = low.length? low.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.stock}</td></tr>`).join('') : `<tr><td colspan="2" style="color:var(--ink-soft)">Nothing low on stock.</td></tr>`;
 }
 
 async function compressCategoryImage(file){
@@ -687,7 +756,7 @@ async function deleteCat(id){ if(catHasChildren(id)){ alert('Is category ke anda
 function renderProdAdmin(){
   document.getElementById('prodBody').innerHTML = DB.products.map(p=>`
     <tr><td>${p.image_url?`<img loading="lazy" src="${p.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:''}</td>
-      <td>${p.name}</td><td>${catPathName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${p.stock}</td>
+      <td>${p.name}${hasVariants(p)?`<div style="font-size:.74rem;color:var(--ink-soft)">${variantsOf(p).length} variants</div>`:''}</td><td>${catPathName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${p.stock}</td>
       <td style="display:flex;gap:6px"><button class="sm" onclick='editProd(${p.id})'>Edit</button><button class="sm dg" onclick="deleteProd(${p.id})">Delete</button></td></tr>`).join('');
 }
 const prodModal=document.getElementById('prodModal');
@@ -709,11 +778,51 @@ document.getElementById('extraFileInput').addEventListener('change', function(){
     compressImage(file, blob=>{ extraImages.push({blob, previewUrl:URL.createObjectURL(blob)}); renderExtraThumbs(); });
   }
 });
+/* ===== Variants (admin product form) =====
+   varRows: one entry per Size/Colour combination: {id (if already saved), options:[{n,v}], stock} */
+let varRows = [];
+const varKey = o => JSON.stringify(o.map(x=>[x.n,x.v]));
+const splitVals = s => [...new Set(String(s||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean))];
+function varOptionInputs(){
+  return [1,2,3].map(i=>({ n:(document.getElementById('varName'+i).value.trim() || ['Size','Colour','Option 3'][i-1]), vals:splitVals(document.getElementById('varVals'+i).value) })).filter(o=>o.vals.length);
+}
+function varFillInputs(rows){
+  const names = vOptionNames(rows);
+  [1,2,3].forEach(i=>{ const n=names[i-1]; document.getElementById('varName'+i).value = n||''; document.getElementById('varVals'+i).value = n ? vOptionValues(rows,n).join(', ') : ''; });
+}
+function varSyncStock(){
+  const f = document.getElementById('prodForm'), has = varRows.length>0;
+  f.stock.readOnly = has; document.getElementById('stockNote').style.display = has ? 'block' : 'none';
+  if(has) f.stock.value = varRows.reduce((s,r)=>s+(parseInt(r.stock,10)||0),0);
+}
+function renderVarRows(){
+  const tb = document.getElementById('varBody'), tbl = document.getElementById('varTable');
+  tbl.style.display = varRows.length ? '' : 'none';
+  tb.innerHTML = varRows.map((r,i)=>`<tr><td>${esc(r.options.map(o=>o.v).join(' / '))}</td>
+    <td><input type="number" min="0" step="1" value="${Number(r.stock)||0}" data-i="${i}" class="var-stock"></td>
+    <td><button type="button" class="sm dg var-rm" data-i="${i}" title="Remove this variant">✕</button></td></tr>`).join('');
+  tb.querySelectorAll('.var-stock').forEach(inp=>inp.addEventListener('input',()=>{ varRows[Number(inp.dataset.i)].stock = Math.max(0, parseInt(inp.value,10)||0); varSyncStock(); }));
+  tb.querySelectorAll('.var-rm').forEach(b=>b.addEventListener('click',()=>{ varRows.splice(Number(b.dataset.i),1); renderVarRows(); }));
+  varSyncStock();
+}
+function varGenerate(){
+  const opts = varOptionInputs();
+  if(new Set(opts.map(o=>o.n.toLowerCase())).size !== opts.length){ alert('Har option ka naam alag hona chahiye (jaise Size aur Colour).'); return; }
+  if(!opts.length){ varRows = []; renderVarRows(); return; }
+  let combos = [[]];
+  opts.forEach(o=>{ const next=[]; combos.forEach(c=>o.vals.forEach(v=>next.push(c.concat([{n:o.n,v}])))); combos = next; });
+  if(combos.length > 100){ alert('Bohat zyada combinations ('+combos.length+'). Maximum 100 variants.'); return; }
+  const old = new Map(varRows.map(r=>[varKey(r.options),r]));   /* keep stock/id of combinations that already exist */
+  varRows = combos.map(c=>old.get(varKey(c)) || {options:c, stock:0});
+  renderVarRows();
+}
+document.getElementById('varGen').addEventListener('click', varGenerate);
 document.getElementById('newProdBtn').addEventListener('click',()=>{
   document.getElementById('prodForm').reset(); document.querySelector('#prodForm [name=id]').value='';
   document.getElementById('prodModalTitle').textContent='Add product'; document.getElementById('prodMsg').innerHTML='';
   clearImage(); switchImgTab('upload'); document.getElementById('imgFinalUrl').value='';
   extraImages = []; renderExtraThumbs();
+  varRows = []; varFillInputs([]); renderVarRows();
   openM(prodModal);
 });
 document.getElementById('prodModalClose').addEventListener('click',()=>closeM(prodModal));
@@ -743,7 +852,9 @@ function editProd(id){
     }
   }
   extraImages = (DB.images[p.id]||[]).map(r=>({url:r.image_url})); renderExtraThumbs();
-  document.getElementById('prodModalTitle').textContent='Edit product'; openM(prodModal);
+  varRows = variantsOf(p).map(v=>({id:v.id, options:(v.options||[]).map(o=>({n:o.n,v:o.v})), stock:Number(v.stock)||0}));
+  varFillInputs(varRows); renderVarRows();
+  document.getElementById('prodModalTitle').textContent='Edit product'; document.getElementById('prodMsg').innerHTML=''; openM(prodModal);
 }
 document.getElementById('prodForm').addEventListener('submit',async e=>{
   e.preventDefault(); const f=e.target, pm=document.getElementById('prodMsg');
@@ -754,6 +865,8 @@ document.getElementById('prodForm').addEventListener('submit',async e=>{
     price:parseFloat(f.price.value), compare_at_price:f.compare_at_price.value?parseFloat(f.compare_at_price.value):null,
     stock:parseInt(f.stock.value,10), image_url: finalImg };
   if(!data.name || isNaN(data.price)){ pm.innerHTML='<div class="msg err">Name and price are required</div>'; return; }
+  if(varRows.length) data.stock = varRows.reduce((s,r)=>s+(parseInt(r.stock,10)||0),0);   /* product stock = total of its variants */
+  if(isNaN(data.stock) || data.stock<0){ pm.innerHTML='<div class="msg err">Stock must be 0 or more</div>'; return; }
   const btn=f.querySelector('button[type=submit]'); btn.disabled=true; pm.innerHTML='<div class="msg">Saving…</div>';
   try{
     if(pendingBlob && !urlTab){
@@ -784,6 +897,24 @@ document.getElementById('prodForm').addEventListener('submit',async e=>{
       const rows = finalExtraUrls.map((image_url,sort_order)=>({product_id:productId, image_url, sort_order}));
       const insR = await sb.from('product_images').insert(rows);
       if(insR.error) throw insR.error;
+    }
+
+    // Variants: remove deleted ones, update existing ones (ids are kept), insert new ones
+    const curV = await sb.from('product_variants').select('id').eq('product_id', productId);
+    if(curV.error){
+      if(varRows.length) throw new Error('Variants save nahin ho sakay. Pehle Supabase SQL Editor me supabase-variants.sql chalayen. ('+curV.error.message+')');
+    } else {
+      pm.innerHTML = '<div class="msg">Saving variants…</div>';
+      const keep = new Set(varRows.filter(r=>r.id).map(r=>r.id));
+      const del = curV.data.map(x=>x.id).filter(id=>!keep.has(id));
+      if(del.length){ const d = await sb.from('product_variants').delete().in('id', del); if(d.error) throw d.error; }
+      for(const [i,r] of varRows.entries()){
+        if(!r.id) continue;
+        const u = await sb.from('product_variants').update({options:r.options, stock:parseInt(r.stock,10)||0, sort_order:i}).eq('id', r.id);
+        if(u.error) throw u.error;
+      }
+      const fresh = varRows.map((r,i)=>({r,i})).filter(x=>!x.r.id).map(x=>({product_id:productId, options:x.r.options, stock:parseInt(x.r.stock,10)||0, sort_order:x.i}));
+      if(fresh.length){ const ins = await sb.from('product_variants').insert(fresh); if(ins.error) throw ins.error; }
     }
   }catch(err){ pm.innerHTML=`<div class="msg err">${esc(err.message||err)}</div>`; btn.disabled=false; return; }
   btn.disabled=false; pm.innerHTML=''; pendingBlob=null; extraImages=[]; closeM(prodModal);
@@ -823,7 +954,30 @@ function fillPayInstr(code, total, pay){
 
 /* ===== Footer info pages ===== */
 document.getElementById('footYear').textContent = new Date().getFullYear();
-const newsletterForm=document.getElementById('newsletterForm'); if(newsletterForm) newsletterForm.addEventListener('submit',e=>{e.preventDefault();const email=document.getElementById('newsletterEmail').value.trim();document.getElementById('newsletterMsg').textContent='Thanks for your interest. Please contact us at helloahmamar@gmail.com to join the mailing list.';newsletterForm.reset();});
+/* Newsletter: email is saved in Supabase (table newsletter_subscribers) via subscribe_newsletter().
+   Run supabase-newsletter.sql once. If it was not run, we say so honestly instead of pretending to subscribe. */
+const newsletterForm=document.getElementById('newsletterForm');
+if(newsletterForm) newsletterForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const input=document.getElementById('newsletterEmail'), msg=document.getElementById('newsletterMsg'), btn=newsletterForm.querySelector('button[type=submit]');
+  const email=input.value.trim();
+  btn.disabled=true; const oldLabel=btn.textContent; btn.textContent='Please wait…';
+  try{
+    const {error}=await sb.rpc('subscribe_newsletter',{p_email:email});
+    if(error){
+      console.error(error);
+      msg.textContent=/BAD_EMAIL/.test(error.message||'') ? 'Please enter a valid email address.' : 'Sorry, we could not sign you up right now. Please try again later.';
+    } else {
+      msg.textContent='Thank you! You are subscribed to AhmaMart updates.';
+      newsletterForm.reset();
+    }
+  }catch(err){
+    console.error(err);
+    msg.textContent='Could not connect. Please check your internet and try again.';
+  }finally{
+    btn.disabled=false; btn.textContent=oldLabel;
+  }
+});
 const INFO_PAGES = {
   about: { title:'About Us', html:`
     <p>AhmaMart is an online store bringing everyday essentials to your doorstep, right here in Pakistan.</p>
@@ -990,12 +1144,16 @@ async function stockProblem(){
   await loadPublic();
   for(const i of cart){
     const p = DB.products.find(x=>x.id===i.id);
-    if(!p || Number(p.stock) < i.qty) return `“${i.name}” is no longer available in the quantity you chose. Please update your cart before paying.`;
+    if(!p) return `“${cartName(i)}” is no longer available in the quantity you chose. Please update your cart before paying.`;
+    if(hasVariants(p)){
+      const v = i.vid ? variantsOf(p).find(x=>x.id===i.vid) : null;
+      if(!v || Number(v.stock) < i.qty) return `“${cartName(i)}” is no longer available in the quantity you chose. Please update your cart before paying.`;
+    } else if(Number(p.stock) < i.qty) return `“${cartName(i)}” is no longer available in the quantity you chose. Please update your cart before paying.`;
   }
   return '';
 }
 function showOrderFallback(info){
-  const lines = cart.map(i=>`• ${i.qty}× ${i.name} — ${fmt(i.price*i.qty)}`).join('\n');
+  const lines = cart.map(i=>`• ${i.qty}× ${cartName(i)} — ${fmt(i.price*i.qty)}`).join('\n');
   const text = `Assalam o Alaikum! ${info.pay.mode==='cod'?'Maine Cash on Delivery order kiya tha lekin website par mera order save nahi hua.':'Maine payment kar di hai lekin website par mera order save nahi hua.'} Meherbani karke order confirm kar dein:\nNaam: ${info.name}\nPhone: ${info.phone}\nEmail: ${info.email}\nAddress: ${info.address}${info.city?', '+info.city:''}\n${lines}\nTotal: ${fmt(payTotal())}\n${info.pay.mode==='cod'?'Payment: Cash on Delivery':'Payment: '+info.pay.method+' — TID '+info.pay.tid+'\n'+(info.pay.proofPath?'Screenshot website par upload ho chuka hai.':'Screenshot is chat mein bhej raha/rahi hoon.')}`;
   window._failText = text; window._failFile = info.pay.file || null;
   document.getElementById('failWa').href = 'https://wa.me/'+STORE_WA+'?text='+encodeURIComponent(text);
@@ -1229,8 +1387,8 @@ uploadArea.addEventListener('drop', e=>{
 document.getElementById('grid').innerHTML='<div class="pgrid">'+'<div class="card sk"></div>'.repeat(8)+'</div>';
 renderCart();
 function renderAll(){ renderChips(); renderGrid(); renderFeatureCollections(); }
-try{ const c=JSON.parse(localStorage.getItem('ahma_cache_v1')||'null'); if(c&&c.p&&c.p.length){ DB.categories=c.c||[]; DB.products=c.p; DB.images=c.i||{}; renderAll(); } }catch(e){}
-loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); saveCart(); renderAll(); renderCart(); route(); });
+try{ const c=JSON.parse(localStorage.getItem('ahma_cache_v1')||'null'); if(c&&c.p&&c.p.length){ DB.categories=c.c||[]; DB.products=c.p; DB.images=c.i||{}; DB.variants=c.v||{}; renderAll(); } }catch(e){}
+loadPublic().then(()=>{ cart=cart.filter(i=>DB.products.some(p=>p.id===i.id)); /* old carts: a product that now has variants needs a variant chosen */ cart=cart.filter(i=>{ const p=DB.products.find(x=>x.id===i.id); return !(hasVariants(p) && !i.vid) && !(i.vid && !variantsOf(p).some(v=>v.id===i.vid)); }); saveCart(); renderAll(); renderCart(); route(); });
 sb.auth.getSession().then(async({data})=>{ if(data.session){ const {data:ok}=await sb.rpc('is_admin'); adminAuthed=!!ok; if(adminAuthed && adminRoot.style.display==='block') openAdmin(); } });
 
 /* ===== Multi-page setup: every page is a real file (index, product, about, faq ...) ===== */
@@ -1259,10 +1417,11 @@ function setMeta(title, desc){
 }
 
 /* quantity-aware add (used by product page) */
-function addQty(p, q){
-  const ex = cart.find(i=>i.id===p.id);
-  if(ex) ex.qty = Math.min(p.stock, ex.qty + q);
-  else cart.push({id:p.id,name:p.name,price:p.price,image_url:p.image_url,qty:Math.min(q,p.stock),stock:p.stock});
+function addQty(p, q, v){
+  const stock = v ? Number(v.stock) : Number(p.stock);
+  const ex = cart.find(i=>i.id===p.id && (i.vid||null)===(v?v.id:null));
+  if(ex){ ex.qty = Math.min(stock, ex.qty + q); ex.stock = stock; }
+  else cart.push(Object.assign({id:p.id,name:p.name,price:p.price,image_url:p.image_url,qty:Math.min(q,stock),stock}, v?{vid:v.id,vlabel:vLabel(v)}:{}));
   saveCart(); renderCart();
 }
 
@@ -1290,7 +1449,8 @@ function showProduct(rawId){
         ${cat?`<div class="pp-cat">${esc(cat)}</div>`:''}
         <h1>${esc(p.name)}</h1>
         <div class="pp-price"><b>${fmt(p.price)}</b>${p.compare_at_price?`<s>${fmt(p.compare_at_price)}</s>`:''}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
-        <div class="pp-stock" style="color:${inStock?(p.stock<=5?'#d9480f':'var(--ok)'):'#c0392b'}">${stockTxt}</div>
+        ${hasVariants(p)?'<div class="pp-opts" id="ppOpts"></div><div class="pp-opt-err" id="ppOptErr" role="alert"></div>':''}
+        <div class="pp-stock" id="ppStock" style="color:${inStock?(p.stock<=5?'#d9480f':'var(--ok)'):'#c0392b'}">${stockTxt}</div>
         ${inStock?`<div class="pp-qty"><span>Quantity</span><div class="stepper"><button type="button" id="qMinus" aria-label="Decrease">−</button><span id="qVal">1</span><button type="button" id="qPlus" aria-label="Increase">+</button></div></div>`:''}
         <div class="pp-actions">
           <button class="btn" type="button" id="ppOrder" ${inStock?'':'disabled'}>${inStock?'Order now':'Out of stock'}</button>
@@ -1305,15 +1465,47 @@ function showProduct(rawId){
   </div>`;
   setMeta(p.name + ' | AhmaMart', (p.description||'').slice(0,155) || ('Buy ' + p.name + ' at AhmaMart Pakistan.'));
 
+  /* --- variants: choose Size / Colour; stock and quantity follow the chosen variant --- */
+  const vs = variantsOf(p), vnames = vOptionNames(vs), sel = {};
+  const optsEl = document.getElementById('ppOpts'), optErr = document.getElementById('ppOptErr');
+  vnames.forEach(n=>{ const vals = vOptionValues(vs,n); if(vals.length===1) sel[n] = vals[0]; });
+  const curV = ()=> vs.length && vnames.every(n=>sel[n]!==undefined) ? (vs.find(v=>vnames.every(n=>optVal(v,n)===sel[n])) || null) : null;
+  const maxQty = ()=>{ const v = curV(); return v ? Number(v.stock) : Number(p.stock); };
   let qty = 1;
   const qv = document.getElementById('qVal');
-  const setQ = n=>{ qty = Math.max(1, Math.min(p.stock, n)); if(qv) qv.textContent = qty; };
+  const setQ = n=>{ qty = Math.max(1, Math.min(maxQty(), n)); if(qv) qv.textContent = qty; };
+  function renderOpts(){
+    if(!optsEl) return;
+    optsEl.innerHTML = vnames.map(n=>`<div class="pp-opt"><div class="pp-opt-l">${esc(n)}${sel[n]!==undefined?`: <b>${esc(sel[n])}</b>`:''}</div><div class="pp-chips">${vOptionValues(vs,n).map(val=>{
+      const avail = vs.some(v=>optVal(v,n)===val && Number(v.stock)>0 && vnames.every(m=>m===n || sel[m]===undefined || optVal(v,m)===sel[m]));
+      return `<button type="button" class="pp-chip${sel[n]===val?' on':''}${avail?'':' off'}" data-n="${esc(n)}" data-v="${esc(val)}" aria-pressed="${sel[n]===val}">${esc(val)}</button>`;
+    }).join('')}</div></div>`).join('');
+    optsEl.querySelectorAll('.pp-chip').forEach(b=>b.addEventListener('click',()=>{ sel[b.dataset.n] = b.dataset.v; if(optErr) optErr.textContent=''; renderOpts(); updateVariantUI(); }));
+  }
+  function updateVariantUI(){
+    const v = curV(), st = v ? Number(v.stock) : Number(p.stock), stEl = document.getElementById('ppStock');
+    if(stEl){ stEl.textContent = st<=0 ? 'Out of stock' : (st<=5 ? `Only ${st} left in stock` : 'In stock'); stEl.style.color = st<=0 ? '#c0392b' : (st<=5 ? '#d9480f' : 'var(--ok)'); }
+    const soldOut = !inStock || (v && st<=0), ob = document.getElementById('ppOrder'), cb = document.getElementById('ppCart');
+    if(ob){ ob.disabled = !!soldOut; ob.textContent = soldOut ? 'Out of stock' : 'Order now'; }
+    if(cb){ cb.disabled = !!soldOut; cb.textContent = soldOut ? 'Out of stock' : 'Add to cart'; }
+    setQ(qty);
+  }
+  /* returns the chosen variant, null for a product without variants, or false (and shows a hint) when a choice is still missing */
+  const pickVariant = ()=>{
+    if(!vs.length) return null;
+    const v = curV(); if(v) return v;
+    const miss = vnames.filter(n=>sel[n]===undefined);
+    if(optErr){ optErr.textContent = miss.length ? 'Please select ' + miss.join(' and ') : 'This combination is not available.'; }
+    if(optsEl) optsEl.scrollIntoView({block:'center',behavior:'smooth'});
+    return false;
+  };
+  renderOpts(); if(vs.length) updateVariantUI();
   document.getElementById('ppBack').addEventListener('click', goBack);
   const minus = document.getElementById('qMinus'), plus = document.getElementById('qPlus');
   if(minus) minus.addEventListener('click', ()=>setQ(qty-1));
   if(plus) plus.addEventListener('click', ()=>setQ(qty+1));
-  document.getElementById('ppCart').addEventListener('click', ()=>{ if(!inStock) return; addQty(p, qty); openCart(); });
-  document.getElementById('ppOrder').addEventListener('click', ()=>{ if(!inStock) return; addQty(p, qty); openM(document.getElementById('checkoutOverlay')); });
+  document.getElementById('ppCart').addEventListener('click', ()=>{ if(!inStock) return; const v = pickVariant(); if(v===false) return; addQty(p, qty, v); openCart(); });
+  document.getElementById('ppOrder').addEventListener('click', ()=>{ if(!inStock) return; const v = pickVariant(); if(v===false) return; addQty(p, qty, v); openM(document.getElementById('checkoutOverlay')); });
   const th = document.getElementById('ppThumbs');
   if(th) th.addEventListener('click', e=>{
     const im = e.target.closest('img'); if(!im) return;

@@ -56,7 +56,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 <link rel="preconnect" href="https://wfdedrzkqtndnqulvpos.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="style.css?v=20261118p">
+<link rel="stylesheet" href="style.css?v=20261119b">
 </head>
 <body class="inpage" data-page="info" data-info="contact">
 
@@ -302,6 +302,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
       <div class="nitem" data-tab="ord">Orders</div>
       <div class="nitem" data-tab="pay">Payment proofs</div>
       <div class="nitem" data-tab="cust">Customers</div>
+      <div class="nitem" data-tab="subs">Subscribers</div>
       <div class="nitem" style="margin-top:auto" id="adminLogout">Log out</div>
       <div class="nitem" id="adminExit">← Exit to store</div>
     </aside>
@@ -336,6 +337,10 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
         <h2 style="margin-bottom:16px">Customers</h2>
         <table><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Last order</th><th></th></tr></thead><tbody id="custBody"></tbody></table>
       </section>
+      <section id="tab-subs" style="display:none">
+        <div class="topb"><h2>Newsletter subscribers</h2><button class="addp" type="button" id="subsExport">Download CSV</button></div>
+        <table><thead><tr><th>Email</th><th>Subscribed</th><th></th></tr></thead><tbody id="subsBody"></tbody></table>
+      </section>
     </main>
   </div>
 </div>
@@ -369,7 +374,16 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
         <div class="field" style="flex:1"><label>Price (Rs.)</label><input name="price" type="number" step="0.01" required></div>
         <div class="field" style="flex:1"><label>Compare-at price</label><input name="compare_at_price" type="number" step="0.01"></div>
       </div>
-      <div class="field"><label>Stock</label><input name="stock" type="number" required></div>
+      <div class="field"><label>Stock</label><input name="stock" type="number" min="0" required><small id="stockNote" style="display:none;color:var(--ink-soft);font-size:.75rem">Stock = neeche diye variants ka total.</small></div>
+      <div class="field var-admin" id="varSection">
+        <label>Variants — Size / Colour (optional)</label>
+        <p class="var-help">Option ka naam aur uski values comma se likhein (jaise Size: S, M, L). Phir <b>Generate variants</b> dabayen aur har variant ka stock bharein. Jis product ke variants nahi, uska stock upar wali field se chalta hai.</p>
+        <div class="var-optrow"><input id="varName1" placeholder="Option 1 (Size)"><input id="varVals1" placeholder="S, M, L, XL"></div>
+        <div class="var-optrow"><input id="varName2" placeholder="Option 2 (Colour)"><input id="varVals2" placeholder="Red, Blue, Black"></div>
+        <div class="var-optrow"><input id="varName3" placeholder="Option 3"><input id="varVals3" placeholder="values"></div>
+        <button type="button" class="sm" id="varGen">Generate variants</button>
+        <table class="var-table" id="varTable" style="display:none"><thead><tr><th>Variant</th><th>Stock</th><th></th></tr></thead><tbody id="varBody"></tbody></table>
+      </div>
 
       <!-- Image section -->
       <div class="field">
@@ -443,7 +457,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261118p"></script>
+<script src="app.js?v=20261119b"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum!%20Mujhe%20AhmaMart%20Store%20se%20order%20ke%20baray%20me%20maloomat%20chahiye." target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">

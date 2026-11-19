@@ -678,3 +678,20 @@ a.link{text-decoration:none;display:inline-block}
 .pm-opt:disabled{opacity:.5;cursor:not-allowed}
 .pm-opt:focus-visible{outline:3px solid #ffb3a6;outline-offset:2px}
 #pmNote .pi-n{margin:0 0 10px}
+
+/* ===== product variants (size / colour) ===== */
+.pp-opts{margin:14px 0 4px;display:grid;gap:12px}
+.pp-opt-l{font-size:13px;font-weight:600;margin-bottom:6px}
+.pp-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pp-chip{min-width:44px;padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
+.pp-chip:hover{border-color:var(--ink)}
+.pp-chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.pp-chip.off{color:var(--ink-soft);text-decoration:line-through;opacity:.55}
+.pp-chip.off.on{opacity:1}
+.pp-opt-err{min-height:0;color:#c0392b;font-size:13px;font-weight:600;margin-top:4px}
+.citem-var{font-size:.78rem;color:var(--ink-soft);margin:1px 0 2px}
+.var-admin .var-help{font-size:.78rem;color:var(--ink-soft);margin:0 0 8px}
+.var-optrow{display:flex;gap:8px;margin-bottom:8px}
+.var-optrow input:first-child{flex:0 0 36%}
+.var-table{width:100%;margin-top:10px}
+.var-table input.var-stock{width:90px;padding:6px 8px}
