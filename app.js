@@ -19,7 +19,18 @@ async function loadPublic(){
    A variant = one combination, e.g. [{n:'Size',v:'M'},{n:'Colour',v:'Red'}], with its own stock. */
 const variantsOf = p => (p && DB.variants[p.id]) || [];
 const hasVariants = p => variantsOf(p).length > 0;
+/* real stock of a product: for products with variants it is the total of the variants (never trust a stale products.stock) */
+const pStock = p => hasVariants(p) ? variantsOf(p).reduce((s,v)=>s+(Number(v.stock)||0),0) : Number((p&&p.stock)||0);
 const vLabel = v => ((v && v.options) || []).map(o=>o.v).join(' / ');
+/* colour swatches on the product page: common English / Roman-Urdu colour names; any valid CSS colour also works */
+const COLOUR_MAP = {black:'#111111',white:'#ffffff','off white':'#f4f1ea',red:'#d62828',blue:'#1d4ed8',navy:'#1e2a5a','navy blue':'#1e2a5a','sky blue':'#38bdf8','royal blue':'#2347c5',green:'#15803d','olive':'#6b7a2a','bottle green':'#0b5d3b',yellow:'#facc15',mustard:'#d9a404',orange:'#f97316',pink:'#ec4899','hot pink':'#ff2d95',purple:'#7c3aed',grey:'#9ca3af',gray:'#9ca3af','dark grey':'#4b5563','light grey':'#d1d5db',charcoal:'#374151',brown:'#7c4a2d',beige:'#e8d9b5',cream:'#f5efdc',maroon:'#7f1d1d',golden:'#d4a017',gold:'#d4a017',silver:'#c0c0c0',skin:'#e8c4a0',khaki:'#bda66b',firozi:'#14b8a6',turquoise:'#14b8a6',peach:'#ffb48a',lavender:'#b9a7f0',mehroon:'#7f1d1d',kala:'#111111',safed:'#ffffff',laal:'#d62828',neela:'#1d4ed8',hara:'#15803d',sabz:'#15803d',peela:'#facc15',gulabi:'#ec4899',kaththai:'#7c4a2d',sunehri:'#d4a017'};
+const isColourName = n => /colou?r|rang/i.test(String(n||''));
+function swatchCss(val){
+  const k = String(val||'').trim().toLowerCase(); if(!k) return '';
+  if(COLOUR_MAP[k]) return COLOUR_MAP[k];
+  try{ if(window.CSS && CSS.supports && CSS.supports('color', k)) return k; }catch(e){}
+  return '';
+}
 const optVal = (v,n) => { const o=((v&&v.options)||[]).find(o=>o.n===n); return o?o.v:undefined; };
 function vOptionNames(vs){ const out=[]; vs.forEach(v=>(v.options||[]).forEach(o=>{ if(!out.includes(o.n)) out.push(o.n); })); return out; }
 function vOptionValues(vs,n){ const out=[]; vs.forEach(v=>{ const x=optVal(v,n); if(x!==undefined && !out.includes(x)) out.push(x); }); return out; }
@@ -91,15 +102,15 @@ function discPct(p){
   return p.compare_at_price && Number(p.compare_at_price)>Number(p.price) ? Math.round((1-Number(p.price)/Number(p.compare_at_price))*100) : 0;
 }
 function productCardHTML(p){
-  const d=discPct(p), low=p.stock>0 && p.stock<=5;
+  const d=discPct(p), st=pStock(p), low=st>0 && st<=5;
   return `
     <div class="card" data-open="${p.id}">
       <div class="cimg">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy" decoding="async">`:`<span>${esc((p.name||'?')[0])}</span>`}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
       <div class="cbody">
         <div class="cname">${esc(p.name)}</div>
         <div class="prow"><span class="price">${fmt(p.price)}</span>${p.compare_at_price?`<span class="pcompare">${fmt(p.compare_at_price)}</span>`:''}</div>
-        <div class="ctags"><span class="tag cod">Delivery across Pakistan</span>${low?`<span class="tag low">Only ${p.stock} left</span>`:''}</div>
-        <button class="addbtn" data-id="${p.id}" ${p.stock<=0?'disabled':''}>${p.stock<=0?'Out of stock':(hasVariants(p)?'Select options':'Add to cart')}</button>
+        <div class="ctags"><span class="tag cod">Delivery across Pakistan</span>${low?`<span class="tag low">Only ${st} left</span>`:''}</div>
+        <button class="addbtn" data-id="${p.id}" ${st<=0?'disabled':''}>${st<=0?'Out of stock':(hasVariants(p)?'Select size / colour':'Add to cart')}</button>
       </div>
     </div>`;
 }
@@ -150,8 +161,8 @@ function renderGrid(){
 function renderFeatureCollections(){
   const hot = document.getElementById('featuredGrid'), sale = document.getElementById('saleGrid');
   if(!hot || !sale) return;
-  const featured = DB.products.filter(p=>Number(p.stock)>0).sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,12);
-  const deals = DB.products.filter(p=>discPct(p)>0 && Number(p.stock)>0).sort((a,b)=>discPct(b)-discPct(a)).slice(0,6);
+  const featured = DB.products.filter(p=>pStock(p)>0).sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,12);
+  const deals = DB.products.filter(p=>discPct(p)>0 && pStock(p)>0).sort((a,b)=>discPct(b)-discPct(a)).slice(0,6);
   hot.innerHTML = featured.length ? featured.map(productCardHTML).join('') : '<p class="empty">New products are coming soon.</p>';
   sale.innerHTML = deals.map(productCardHTML).join('');
   [hot,sale].forEach(root=>{
@@ -279,36 +290,67 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   const btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
   const itemsArg = cart.map(i=>i.vid ? {product_id:i.id,variant_id:i.vid,qty:i.qty} : {product_id:i.id,qty:i.qty});
   const hasVarItems = cart.some(i=>i.vid);
-  let res = null, error = null;
+  const cartSnap = cart.map(i=>Object.assign({}, i));   /* copy: the cart is cleared after a successful order, the receipt still needs it */
+  let res = null, error = null, degraded = false;
   const mode = pay.mode || 'advance';
   const codTag = mode==='cod' ? '[COD - cash on delivery] ' : '';
+  const errText = e => String((e && (e.message || e.details || e.code)) || '');
+  /* try the given order functions one after another; moves on to the next only when a function itself is missing */
+  async function runAttempts(list){
+    let out = null, err = null;
+    for(const {fn,args} of list){
+      let r; try{ r = await sb.rpc(fn, args); }catch(ex){ r = {error:ex}; }
+      if(!r.error && r.data && r.data.code){ out = r.data; err = null; break; }
+      err = r.error || new Error('Empty response from '+fn);
+      console.error(fn+' failed', r.error || r);
+      if(!/could not find the function|schema cache|p_email|PGRST202/i.test(errText(r.error))) break;
+    }
+    return {out, err};
+  }
   const attempts = [
     {fn:'place_order_v2', args:{p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg,p_payment_method:mode}},
     {fn:'place_order', args:{p_name:name,p_phone:phone,p_email:email,p_address:codTag+address,p_city:city,p_items:itemsArg}},
     {fn:'place_order', args:{p_name:name,p_phone:phone,p_address:codTag+address,p_city:city,p_items:itemsArg}}
   ];
   if(mode==='online') attempts.length = 1;   /* online payment needs the v2 function (supabase-payment-methods.sql) */
-  /* carts with size/colour variants must go through place_order_v3 (supabase-variants.sql): it is the one that reduces the variant's stock */
-  if(hasVarItems) attempts.splice(0, attempts.length, {fn:'place_order_v3', args:{p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg,p_payment_method:mode}});
-  for(const {fn,args} of attempts){
-    let r; try{ r = await sb.rpc(fn, args); }catch(ex){ r = {error:ex}; }
-    if(!r.error && r.data && r.data.code){ res = r.data; error = null; break; }
-    error = r.error || new Error('Empty response from place_order');
-    console.error('place_order failed', r.error || r);
-    // only try the next signature when the function itself was not found
-    if(!/could not find the function|schema cache|p_email|PGRST202/i.test(String((r.error&&(r.error.message||r.error.code))||''))) break;
+  if(hasVarItems){
+    /* carts with size/colour must go through place_order_v3 (supabase-variants.sql): it reduces the variant's own stock */
+    const r3 = await runAttempts([{fn:'place_order_v3', args:{p_name:name,p_phone:phone,p_email:email,p_address:address,p_city:city,p_items:itemsArg,p_payment_method:mode}}]);
+    res = r3.out; error = r3.err;
+    /* Safety net: if the server answered with an unexpected database error (function missing / not updated), do not lose the customer's order.
+       Save it through the normal order function instead, with the chosen size/colour written into the delivery note so the owner sees it. */
+    const business = /OUT_OF_STOCK|VARIANT_REQUIRED|VARIANT_NOT_FOUND|COD_LIMIT|EMPTY_CART|BAD_ITEM|BAD_PAYMENT_METHOD/i;
+    if(error && error.code && !business.test(errText(error))){
+      console.warn('place_order_v3 is not working ('+errText(error)+'). Run supabase-variants.sql in Supabase. Using the safety net for this order.');
+      const per = new Map(); cart.forEach(i=>per.set(i.id,(per.get(i.id)||0)+i.qty));
+      const plain = [...per].map(([id,qty])=>({product_id:id,qty}));
+      const note = '[VARIANT ORDER - '+cartSnap.filter(i=>i.vid).map(i=>cartName(i)+' x'+i.qty).join(', ')+' - reduce variant stock manually] ';
+      const fb = [
+        {fn:'place_order_v2', args:{p_name:name,p_phone:phone,p_email:email,p_address:note+address,p_city:city,p_items:plain,p_payment_method:mode}},
+        {fn:'place_order', args:{p_name:name,p_phone:phone,p_email:email,p_address:codTag+note+address,p_city:city,p_items:plain}},
+        {fn:'place_order', args:{p_name:name,p_phone:phone,p_address:codTag+note+address,p_city:city,p_items:plain}}
+      ];
+      if(mode==='online') fb.length = 1;
+      const r2 = await runAttempts(fb);
+      if(r2.out){ res = r2.out; error = null; degraded = true; } else if(r2.err && !/PGRST202|could not find the function/i.test(errText(r2.err))) { error = r2.err; }
+    }
+  } else {
+    const r1 = await runAttempts(attempts); res = r1.out; error = r1.err;
   }
   if(btn) btn.disabled=false;
-  if(error && /COD_LIMIT/i.test(String(error.message||error.details||''))){
+  if(error && /COD_LIMIT/i.test(errText(error))){
     showPayStep(); document.getElementById('psMsg').innerHTML = '<div class="msg err">Cash on Delivery sirf '+esc(fmt(PAYMENT.cod.maxTotal))+' tak ke orders par available hai. Meherbani karke doosra tareeqa chunein.</div>'; return;
   }
-  if(error && /OUT_OF_STOCK|VARIANT_REQUIRED/i.test(String(error.message||error.details||''))){
+  if(error && /OUT_OF_STOCK|VARIANT_REQUIRED|VARIANT_NOT_FOUND/i.test(errText(error))){
     await loadPublic(); reconcileCart(); saveCart(); renderCart(); renderGrid();
     showCheckoutStep(1);
-    msg.innerHTML = '<div class="msg err">Sorry, ek item abhi stock se khatam ho gaya ya uski quantity kam reh gayi. Cart update kar diya gaya hai — meherbani karke dekh lein aur dobara order karein.</div>'; return;
+    msg.innerHTML = '<div class="msg err">Sorry, aap ka chuna hua item (ya uska size/colour) abhi stock se khatam ho gaya ya quantity kam reh gayi. Cart update kar diya gaya hai — meherbani karke dekh lein aur dobara order karein.</div>'; return;
   }
-  if(error || !res){ showOrderFallback({name,phone,email,address,city,pay,err:(error&&(error.message||error.details||error.code))||'unknown'}); await loadPublic(); renderGrid(); return; }
-  const code=res.code, order={items:res.items,subtotal:Number(res.subtotal)};
+  if(error || !res){ showOrderFallback({name,phone,email,address,city,pay,err:errText(error)||'unknown'}); await loadPublic(); renderGrid(); return; }
+  /* receipt lines: from the server (item names already contain the size/colour); safety-net orders use the cart's own names */
+  const srvItems = Array.isArray(res.items) && res.items.length ? res.items : null;
+  const rcptItems = (degraded || !srvItems) ? cartSnap.map(i=>({name:cartName(i), qty:i.qty, price:Number(i.price)})) : srvItems;
+  const code=res.code, order={items:rcptItems,subtotal:Number(res.subtotal)||cartSnap.reduce((t,i)=>t+Number(i.price)*i.qty,0)};
   await loadPublic();
   cart=[]; saveCart(); renderCart(); renderGrid();
   f.reset(); window._pay=null; clearShot(); closeM(checkoutOverlay); showCheckoutStep(1);
@@ -756,7 +798,7 @@ async function deleteCat(id){ if(catHasChildren(id)){ alert('Is category ke anda
 function renderProdAdmin(){
   document.getElementById('prodBody').innerHTML = DB.products.map(p=>`
     <tr><td>${p.image_url?`<img loading="lazy" src="${p.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:''}</td>
-      <td>${p.name}${hasVariants(p)?`<div style="font-size:.74rem;color:var(--ink-soft)">${variantsOf(p).length} variants</div>`:''}</td><td>${catPathName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${p.stock}</td>
+      <td>${p.name}${hasVariants(p)?`<div style="font-size:.74rem;color:var(--ink-soft)">${variantsOf(p).length} variants</div>`:''}</td><td>${catPathName(p.category_id)||'—'}</td><td>${fmt(p.price)}</td><td>${pStock(p)}</td>
       <td style="display:flex;gap:6px"><button class="sm" onclick='editProd(${p.id})'>Edit</button><button class="sm dg" onclick="deleteProd(${p.id})">Delete</button></td></tr>`).join('');
 }
 const prodModal=document.getElementById('prodModal');
@@ -1124,6 +1166,21 @@ async function runDiagnostics(){
     add(!o.error, 'Reading orders', o.error ? o.error.message : (o.count + ' order(s) saved in the database'), 'Run PART A of supabase-fix-orders.sql in the Supabase SQL Editor.');
   }catch(e){ add(false, 'Reading orders', String(e.message||e), 'Run PART A of supabase-fix-orders.sql.'); }
   try{
+    /* size / colour ordering: the table must exist and place_order_v3 must be installed (supabase-variants.sql).
+       Safe probe: an empty cart is rejected with EMPTY_CART before anything is saved. */
+    const vt = await sb.from('product_variants').select('id,product_id,stock');
+    if(vt.error){ add(false, 'Size / colour variants', vt.error.message, 'Run supabase-variants.sql in the Supabase SQL Editor.'); }
+    else {
+      const bad = DB.products.filter(p=>hasVariants(p) && Number(p.stock) !== pStock(p)).length;
+      add(true, 'Size / colour variants', vt.data.length + ' variant(s) saved' + (bad ? ' — ' + bad + ' product(s) have an old stock total (fixed automatically when you run supabase-variants.sql again)' : ''));
+    }
+    const p3 = await sb.rpc('place_order_v3', {p_name:'', p_phone:'', p_email:'', p_address:'', p_city:'', p_items:[], p_payment_method:'advance'});
+    const m3 = (p3.error && (p3.error.message||'')) || '';
+    const miss3 = !!p3.error && (p3.error.code === 'PGRST202' || /could not find the function/i.test(m3));
+    const ok3 = !miss3 && /EMPTY_CART/.test(m3);
+    add(ok3, 'Order with size / colour (place_order_v3)', ok3 ? 'Installed and working' : (miss3 ? 'The function is missing in your database' : (m3 || 'Unexpected answer from the function')), 'Run the latest supabase-variants.sql in the Supabase SQL Editor (safe to run again), then refresh this check.');
+  }catch(e){ add(false, 'Order with size / colour (place_order_v3)', String(e.message||e), 'Run the latest supabase-variants.sql in the Supabase SQL Editor.'); }
+  try{
     // safe probe: correct argument names but empty data, so the function rejects it before saving anything
     const p = await sb.rpc('place_order', {p_name:'', p_phone:'', p_address:'', p_city:'', p_items:[], p_email:''});
     const missing = !!p.error && (p.error.code === 'PGRST202' || /could not find the function/i.test(p.error.message||''));
@@ -1433,10 +1490,10 @@ function showProduct(rawId){
     pv.innerHTML = '<div class="pg"><div class="ip-body" style="text-align:center"><h1>Product not found</h1><p>This product is no longer available.</p><a class="btn" href="index.html" style="display:inline-block;width:auto;padding:12px 26px;text-decoration:none">Back to store</a></div></div>';
     return;
   }
-  const gal = productGallery(p), d = discPct(p), cat = catPathName(p.category_id), catTrail = catPath(p.category_id), inStock = p.stock > 0;
-  const stockTxt = !inStock ? 'Out of stock' : (p.stock <= 5 ? `Only ${p.stock} left in stock` : 'In stock');
+  const gal = productGallery(p), d = discPct(p), cat = catPathName(p.category_id), catTrail = catPath(p.category_id), pst = pStock(p), inStock = pst > 0;
+  const stockTxt = !inStock ? 'Out of stock' : (pst <= 5 ? `Only ${pst} left in stock` : 'In stock');
   const waText = `Assalam o Alaikum! Mujhe is product ke baray mein maloomat chahiye:\n${p.name} (${fmt(p.price)})\n${location.href}`;
-  const related = DB.products.filter(x=>x.id!==p.id && Number(x.stock)>0)
+  const related = DB.products.filter(x=>x.id!==p.id && pStock(x)>0)
     .sort((a,b)=>(b.category_id===p.category_id)-(a.category_id===p.category_id) || Number(b.id)-Number(a.id)).slice(0,6);
   pv.innerHTML = `<div class="pg">
     <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span>${catTrail.map(c=>`<a href="${catPageHref(c.id)}">${esc(c.name)}</a><span>›</span>`).join('')}<span class="cur">${esc(p.name)}</span></nav>
@@ -1450,7 +1507,7 @@ function showProduct(rawId){
         <h1>${esc(p.name)}</h1>
         <div class="pp-price"><b>${fmt(p.price)}</b>${p.compare_at_price?`<s>${fmt(p.compare_at_price)}</s>`:''}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
         ${hasVariants(p)?'<div class="pp-opts" id="ppOpts"></div><div class="pp-opt-err" id="ppOptErr" role="alert"></div>':''}
-        <div class="pp-stock" id="ppStock" style="color:${inStock?(p.stock<=5?'#d9480f':'var(--ok)'):'#c0392b'}">${stockTxt}</div>
+        <div class="pp-stock" id="ppStock" style="color:${inStock?(pst<=5?'#d9480f':'var(--ok)'):'#c0392b'}">${stockTxt}</div>
         ${inStock?`<div class="pp-qty"><span>Quantity</span><div class="stepper"><button type="button" id="qMinus" aria-label="Decrease">−</button><span id="qVal">1</span><button type="button" id="qPlus" aria-label="Increase">+</button></div></div>`:''}
         <div class="pp-actions">
           <button class="btn" type="button" id="ppOrder" ${inStock?'':'disabled'}>${inStock?'Order now':'Out of stock'}</button>
@@ -1468,22 +1525,36 @@ function showProduct(rawId){
   /* --- variants: choose Size / Colour; stock and quantity follow the chosen variant --- */
   const vs = variantsOf(p), vnames = vOptionNames(vs), sel = {};
   const optsEl = document.getElementById('ppOpts'), optErr = document.getElementById('ppOptErr');
+  const missing = new Set();
   vnames.forEach(n=>{ const vals = vOptionValues(vs,n); if(vals.length===1) sel[n] = vals[0]; });
   const curV = ()=> vs.length && vnames.every(n=>sel[n]!==undefined) ? (vs.find(v=>vnames.every(n=>optVal(v,n)===sel[n])) || null) : null;
-  const maxQty = ()=>{ const v = curV(); return v ? Number(v.stock) : Number(p.stock); };
+  const maxQty = ()=>{ const v = curV(); return v ? Number(v.stock) : (vs.length ? 0 : Number(p.stock)); };
   let qty = 1;
   const qv = document.getElementById('qVal');
   const setQ = n=>{ qty = Math.max(1, Math.min(maxQty(), n)); if(qv) qv.textContent = qty; };
   function renderOpts(){
     if(!optsEl) return;
-    optsEl.innerHTML = vnames.map(n=>`<div class="pp-opt"><div class="pp-opt-l">${esc(n)}${sel[n]!==undefined?`: <b>${esc(sel[n])}</b>`:''}</div><div class="pp-chips">${vOptionValues(vs,n).map(val=>{
-      const avail = vs.some(v=>optVal(v,n)===val && Number(v.stock)>0 && vnames.every(m=>m===n || sel[m]===undefined || optVal(v,m)===sel[m]));
-      return `<button type="button" class="pp-chip${sel[n]===val?' on':''}${avail?'':' off'}" data-n="${esc(n)}" data-v="${esc(val)}" aria-pressed="${sel[n]===val}">${esc(val)}</button>`;
-    }).join('')}</div></div>`).join('');
-    optsEl.querySelectorAll('.pp-chip').forEach(b=>b.addEventListener('click',()=>{ sel[b.dataset.n] = b.dataset.v; if(optErr) optErr.textContent=''; renderOpts(); updateVariantUI(); }));
+    optsEl.innerHTML = vnames.map(n=>{
+      const vals = vOptionValues(vs,n);
+      const swatches = isColourName(n) && vals.every(x=>swatchCss(x));
+      const btns = vals.map(val=>{
+        const avail = vs.some(v=>optVal(v,n)===val && Number(v.stock)>0 && vnames.every(m=>m===n || sel[m]===undefined || optVal(v,m)===sel[m]));
+        const on = sel[n]===val;
+        return swatches
+          ? `<button type="button" class="pp-sw${on?' on':''}${avail?'':' off'}" data-n="${esc(n)}" data-v="${esc(val)}" title="${esc(val)}${avail?'':' — not available'}" aria-label="${esc(n)} ${esc(val)}" aria-pressed="${on}"><span style="background:${esc(swatchCss(val))}"></span></button>`
+          : `<button type="button" class="pp-chip${on?' on':''}${avail?'':' off'}" data-n="${esc(n)}" data-v="${esc(val)}" title="${avail?'':'Not available in this combination'}" aria-pressed="${on}">${esc(val)}</button>`;
+      }).join('');
+      return `<div class="pp-opt${missing.has(n)?' missing':''}" data-opt="${esc(n)}"><div class="pp-opt-l">${esc(n)}${sel[n]!==undefined?`: <b>${esc(sel[n])}</b>`:''}</div><div class="pp-chips">${btns}</div></div>`;
+    }).join('');
+    optsEl.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{
+      sel[b.dataset.n] = b.dataset.v; missing.delete(b.dataset.n); if(optErr && !missing.size) optErr.textContent='';
+      /* if the new choice makes the other pick impossible (that combination does not exist), clear the other pick */
+      if(!vs.some(v=>vnames.every(k=>sel[k]===undefined || optVal(v,k)===sel[k]))) vnames.forEach(m=>{ if(m!==b.dataset.n && vOptionValues(vs,m).length>1) delete sel[m]; });
+      renderOpts(); updateVariantUI();
+    }));
   }
   function updateVariantUI(){
-    const v = curV(), st = v ? Number(v.stock) : Number(p.stock), stEl = document.getElementById('ppStock');
+    const v = curV(), st = v ? Number(v.stock) : pst, stEl = document.getElementById('ppStock');
     if(stEl){ stEl.textContent = st<=0 ? 'Out of stock' : (st<=5 ? `Only ${st} left in stock` : 'In stock'); stEl.style.color = st<=0 ? '#c0392b' : (st<=5 ? '#d9480f' : 'var(--ok)'); }
     const soldOut = !inStock || (v && st<=0), ob = document.getElementById('ppOrder'), cb = document.getElementById('ppCart');
     if(ob){ ob.disabled = !!soldOut; ob.textContent = soldOut ? 'Out of stock' : 'Order now'; }
@@ -1495,8 +1566,11 @@ function showProduct(rawId){
     if(!vs.length) return null;
     const v = curV(); if(v) return v;
     const miss = vnames.filter(n=>sel[n]===undefined);
-    if(optErr){ optErr.textContent = miss.length ? 'Please select ' + miss.join(' and ') : 'This combination is not available.'; }
-    if(optsEl) optsEl.scrollIntoView({block:'center',behavior:'smooth'});
+    missing.clear(); miss.forEach(n=>missing.add(n));
+    if(optErr){ optErr.textContent = miss.length ? 'Please select ' + miss.join(' and ') + ' to continue' : 'This size/colour combination is not available — please choose another.'; }
+    renderOpts();
+    const target = optsEl && (optsEl.querySelector('.pp-opt.missing') || optsEl);
+    if(target){ target.scrollIntoView({block:'center',behavior:'smooth'}); target.classList.remove('shake'); void target.offsetWidth; target.classList.add('shake'); }
     return false;
   };
   renderOpts(); if(vs.length) updateVariantUI();
