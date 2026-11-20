@@ -15,3 +15,12 @@
 - Website me **safety net**: agar database function kisi wajah se kaam na kare, customer ka order phir bhi save hota hai aur
   address note me `[VARIANT ORDER - Hoodie (M / Red) x1 - reduce variant stock manually]` likha hota hai.
 - Product page par professional Size chips + Colour swatches, adhoori selection par saaf highlight, cart/receipt/WhatsApp me variant ka naam.
+
+---
+# Admin Orders — poori details (naya)
+
+1. Supabase SQL Editor me `supabase-order-details.sql` Run karein (safe, dobara bhi chala sakte hain). Is se naye orders ke saath email, city,
+   payment ka tareeqa (JazzCash/EasyPaisa...), TID aur screenshot bhi save hota hai.
+2. Naya zip upload karein. Admin → **Orders** me ab har order ka card dikhta hai: customer (naam, phone, email, address, city),
+   payment (COD / advance, TID, screenshot), har product (tasveer, naam, size/colour, price, qty, total), status, WhatsApp button,
+   "Copy order details", search aur status filter. Naye orders har 1 minute me khud aa jate hain (Refresh button bhi hai).

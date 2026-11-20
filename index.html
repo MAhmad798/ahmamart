@@ -91,7 +91,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 <link rel="preconnect" href="https://wfdedrzkqtndnqulvpos.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="style.css?v=20261120a">
+<link rel="stylesheet" href="style.css?v=20261120c">
 </head>
 <body data-page="home">
 
@@ -355,8 +355,11 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
         <table><thead><tr><th>Picture</th><th>Name</th><th>Actions</th></tr></thead><tbody id="catBody"></tbody></table>
       </section>
       <section id="tab-ord" style="display:none">
-        <h2 style="margin-bottom:16px">Orders</h2>
-        <table><thead><tr><th>Code</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody id="ordBody"></tbody></table>
+        <div class="ord-bar"><h2>Orders</h2><button type="button" class="sm" id="ordRefresh">↻ Refresh</button></div>
+        <div id="ordNew" class="ord-new" role="status" style="display:none"></div>
+        <input type="search" id="ordSearch" class="ord-search" placeholder="Search by order code, name, phone, address, product…" aria-label="Search orders">
+        <div id="ordFilters" class="ord-filters"></div>
+        <div id="ordBody" class="ord-list"></div>
       </section>
       <section id="tab-pay" style="display:none">
         <h2 style="margin-bottom:6px">Payment proofs</h2>
@@ -487,7 +490,7 @@ src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261120a"></script>
+<script src="app.js?v=20261120c"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum!%20Mujhe%20AhmaMart%20Store%20se%20order%20ke%20baray%20me%20maloomat%20chahiye." target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">

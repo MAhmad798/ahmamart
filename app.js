@@ -351,6 +351,12 @@ document.getElementById('checkoutForm').addEventListener('submit',async e=>{
   const srvItems = Array.isArray(res.items) && res.items.length ? res.items : null;
   const rcptItems = (degraded || !srvItems) ? cartSnap.map(i=>({name:cartName(i), qty:i.qty, price:Number(i.price)})) : srvItems;
   const code=res.code, order={items:rcptItems,subtotal:Number(res.subtotal)||cartSnap.reduce((t,i)=>t+Number(i.price)*i.qty,0)};
+  /* store email / city / payment method / TID / screenshot on the order so the admin sees everything (supabase-order-details.sql; silently skipped if not installed) */
+  try{
+    const isAdv = mode==='advance';
+    await sb.rpc('save_order_details',{p_code:code,p_phone:phone,p_email:email,p_city:city,
+      p_via:isAdv?(pay.method||null):null, p_tid:isAdv?(pay.tid||null):null, p_proof:isAdv?(pay.proofPath||null):null});
+  }catch(ex){ console.warn('save_order_details skipped', ex); }
   await loadPublic();
   cart=[]; saveCart(); renderCart(); renderGrid();
   f.reset(); window._pay=null; clearShot(); closeM(checkoutOverlay); showCheckoutStep(1);
@@ -1309,17 +1315,128 @@ function showPayStep(){
   const ov = document.getElementById('checkoutOverlay');
   if(ov && window.MutationObserver) new MutationObserver(()=>{ if(ov.classList.contains('on') && document.getElementById('payStep').style.display!=='none' && !window._payConfirmed) showCheckoutStep(1); }).observe(ov,{attributes:true,attributeFilter:['class']});
 })();
-function renderOrdAdmin(){
-  document.getElementById('ordBody').innerHTML = DB.orders.length ? DB.orders.map(o=>`
-    <tr>
-      <td>${esc(o.code)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td>
-      <td style="max-width:320px;font-size:.82rem;color:var(--ink-soft)">${itemsSummary(o.items)}</td>
-      <td>${fmt(o.subtotal)}${payBadge(o)}</td>
-      <td><select class="sm" onchange="updateStatus(${o.id},this.value)">
-        ${['pending','confirmed','shipped','delivered','cancelled'].map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
-      </select></td>
-    </tr>`).join('') : `<tr><td colspan="6" style="color:var(--ink-soft);white-space:normal">${DB.ordersError?'⚠️ Orders could not be loaded ('+esc(DB.ordersError)+'). Open Dashboard → “Run connection check” to see the fix.':'No orders yet.'}</td></tr>`;
+/* ===== ADMIN: ORDERS (full details: customer, address, payment, every product) ===== */
+const ORD_STATUSES = ['pending','confirmed','shipped','delivered','cancelled'];
+let ordFilter = 'all', ordQuery = '';
+/* "[COD - cash on delivery] [VARIANT ORDER ...] real address" -> tags + clean address */
+function splitAddress(a){
+  const tags = []; let rest = String(a||'');
+  rest = rest.replace(/^\s*(?:\[[^\]]*\]\s*)+/, m=>{ m.replace(/\[([^\]]*)\]/g,(_,t)=>{ tags.push(t.trim()); return ''; }); return ''; });
+  return { tags, text: rest.trim() };
 }
+/* Pakistani numbers: 0300... -> 92300... for wa.me */
+function waNumber(ph){ let d = String(ph||'').replace(/\D/g,''); if(d.startsWith('00')) d = d.slice(2); if(d.startsWith('0')) d = '92'+d.slice(1); return d; }
+function orderItemsList(o){
+  let items = o.items; if(typeof items === 'string'){ try{ items = JSON.parse(items); }catch(e){ items = []; } }
+  if(!Array.isArray(items)) return [];
+  return items.map(it=>{
+    const pid = it.product_id ?? it.productId ?? it.id;
+    const prod = DB.products.find(p=>(pid!=null && String(p.id)===String(pid)) || (it.name && p.name===it.name));
+    const qty = Number(it.qty ?? it.quantity ?? 1) || 1;
+    const price = Number(it.price ?? (prod && prod.price) ?? 0) || 0;
+    return { name: it.name || (prod && prod.name) || 'Product', variant: it.variant || '', qty, price, image: it.image_url || it.image || (prod && prod.image_url) || '', pid };
+  });
+}
+function orderPayInfo(o){
+  const m = o.payment_method || (/^\s*\[COD/i.test(o.address||'') ? 'cod' : 'advance');
+  const st = o.payment_status || 'unpaid';
+  if(m==='cod') return { label:'💵 Cash on Delivery', note:'Collect '+fmt(o.subtotal)+' from the customer on delivery', cls:'cod' };
+  if(m==='online') return { label:'💳 Online payment', note:'Payment status: '+st, cls: st==='paid'?'paid':'unpaid' };
+  return { label:'📲 Advance payment', note: o.payment_via||o.payment_tid ? '' : 'Method / TID not saved for this order — check the Payment proofs tab', cls:'adv' };
+}
+function orderText(o){
+  const ad = splitAddress(o.address), its = orderItemsList(o), pi = orderPayInfo(o);
+  return ['Order '+o.code+(o.created_at?' — '+new Date(o.created_at).toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'}):''),
+    'Name: '+(o.name||''), 'Phone: '+(o.phone||''), o.email?('Email: '+o.email):'',
+    'Address: '+ad.text+(o.city?', '+o.city:''),
+    ...its.map(i=>'• '+i.qty+'× '+i.name+(i.variant && !i.name.includes(i.variant)?' ('+i.variant+')':'')+' — '+fmt(i.price*i.qty)),
+    'Total: '+fmt(o.subtotal),
+    'Payment: '+pi.label.replace(/^\S+\s/,'')+(o.payment_via?' via '+o.payment_via:'')+(o.payment_tid?' · TID '+o.payment_tid:''),
+    'Status: '+o.status].filter(Boolean).join('\n');
+}
+function ordCard(o){
+  const ad = splitAddress(o.address), its = orderItemsList(o), pi = orderPayInfo(o);
+  const when = o.created_at ? new Date(o.created_at).toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'}) : '';
+  const calc = its.reduce((t,i)=>t+i.price*i.qty,0), qtyTotal = its.reduce((t,i)=>t+i.qty,0);
+  const wa = 'https://wa.me/'+waNumber(o.phone)+'?text='+encodeURIComponent('Assalam o Alaikum '+(o.name||'')+'! AhmaMart se aap ka order '+o.code+' ('+fmt(o.subtotal)+') — ');
+  const tagHtml = ad.tags.map(t=>`<div class="oc-note ${/VARIANT/i.test(t)?'warn':''}">${/COD/i.test(t)?'💵 ':'⚠️ '}${esc(t)}</div>`).join('');
+  return `
+  <article class="oc s-${esc(o.status)}" data-code="${esc(o.code)}">
+    <header class="oc-h">
+      <div><b class="oc-code">${esc(o.code)}</b><span class="oc-when">${esc(when)}</span></div>
+      <div class="oc-h-r"><span class="badge2 s-${esc(o.status)}">${esc(o.status)}</span>
+        <select class="sm" aria-label="Order status" onchange="updateStatus(${o.id},this.value)">${ORD_STATUSES.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></div>
+    </header>
+    <div class="oc-cols">
+      <section class="oc-box"><h4>Customer</h4>
+        <div class="oc-name">${esc(o.name||'—')}</div>
+        <div class="oc-row">📞 <a href="tel:${esc(String(o.phone||'').replace(/\s/g,''))}">${esc(o.phone||'—')}</a></div>
+        ${o.email?`<div class="oc-row">✉️ <a href="mailto:${esc(o.email)}">${esc(o.email)}</a></div>`:`<div class="oc-row oc-dim">✉️ Email not saved</div>`}
+        <div class="oc-row">📍 ${ad.text?esc(ad.text):'<span class="oc-dim">No address</span>'}${o.city?', <b>'+esc(o.city)+'</b>':''}</div>
+        ${tagHtml}
+      </section>
+      <section class="oc-box"><h4>Payment</h4>
+        <div class="oc-pay ${pi.cls}">${pi.label}</div>
+        ${o.payment_via?`<div class="oc-row">Paid via <b>${esc(o.payment_via)}</b></div>`:''}
+        ${o.payment_tid?`<div class="oc-row">TID <b class="oc-tid">${esc(o.payment_tid)}</b></div>`:''}
+        ${pi.note?`<div class="oc-row oc-dim">${esc(pi.note)}</div>`:''}
+        ${o.payment_proof?`<button type="button" class="sm" onclick="viewProof(this,'${esc(o.payment_proof)}')">🧾 View payment screenshot</button>`:''}
+        <div class="oc-total"><span>Order total</span><b>${fmt(o.subtotal)}</b></div>
+      </section>
+    </div>
+    <div class="oc-items">
+      <h4>Products ordered <span>(${its.length} item${its.length===1?'':'s'} · ${qtyTotal} pcs)</span></h4>
+      ${its.length ? `<table class="oc-tbl"><thead><tr><th></th><th>Product</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead><tbody>${its.map(i=>`
+        <tr><td class="oc-img">${i.image?`<img src="${esc(i.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'📦'}</td>
+          <td><b>${esc(i.name)}</b>${i.variant && !i.name.includes(i.variant)?`<div class="oc-var">${esc(i.variant)}</div>`:''}</td>
+          <td>${fmt(i.price)}</td><td>×${i.qty}</td><td><b>${fmt(i.price*i.qty)}</b></td></tr>`).join('')}</tbody></table>
+        ${Math.abs(calc - Number(o.subtotal)) > 1 ? `<div class="oc-dim" style="margin-top:6px">Note: product lines add up to ${fmt(calc)}; the order total saved is ${fmt(o.subtotal)}.</div>` : ''}`
+        : '<div class="oc-dim">No product details were saved with this order.</div>'}
+    </div>
+    <footer class="oc-f">
+      <a class="sm oc-btn" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp customer</a>
+      <button type="button" class="sm" onclick="copyOrder(this,'${esc(o.code)}')">📋 Copy order details</button>
+    </footer>
+  </article>`;
+}
+function ordMatches(o){
+  if(ordFilter!=='all' && o.status!==ordFilter) return false;
+  if(!ordQuery) return true;
+  const hay = [o.code,o.name,o.phone,o.email,o.address,o.city,o.payment_tid,...orderItemsList(o).map(i=>i.name)].join(' ').toLowerCase();
+  return ordQuery.toLowerCase().split(/\s+/).every(w=>hay.includes(w));
+}
+function renderOrdAdmin(){
+  const box = document.getElementById('ordBody'); if(!box) return;
+  const fl = document.getElementById('ordFilters');
+  if(fl) fl.innerHTML = ['all',...ORD_STATUSES].map(s=>{ const n = s==='all' ? DB.orders.length : DB.orders.filter(o=>o.status===s).length; return `<button type="button" class="chip ${ordFilter===s?'on':''}" data-f="${s}">${s==='all'?'All':s[0].toUpperCase()+s.slice(1)} <span>${n}</span></button>`; }).join('');
+  if(fl) fl.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click',()=>{ ordFilter = b.dataset.f; renderOrdAdmin(); }));
+  const list = DB.orders.filter(ordMatches);
+  box.innerHTML = list.length ? list.map(ordCard).join('')
+    : `<div class="oc-empty">${DB.ordersError?'⚠️ Orders could not be loaded ('+esc(DB.ordersError)+'). Open Dashboard → “Run connection check” to see the fix.':(DB.orders.length?'No orders match this filter.':'No orders yet.')}</div>`;
+}
+function copyOrder(btn, code){ const o = DB.orders.find(x=>x.code===code); if(o) copyText(orderText(o), btn); }
+async function viewProof(btn, path){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Opening…';
+  const r = await sb.storage.from('payment-proofs').createSignedUrl(path, 3600);
+  btn.disabled = false; btn.textContent = old;
+  if(r.error || !r.data){ alert('Could not open the screenshot: ' + ((r.error&&r.error.message)||'not found')); return; }
+  window.open(r.data.signedUrl, '_blank', 'noopener');
+}
+(function(){
+  const q = document.getElementById('ordSearch'), rf = document.getElementById('ordRefresh');
+  if(q) q.addEventListener('input',()=>{ ordQuery = q.value.trim(); renderOrdAdmin(); });
+  async function refresh(manual){
+    const before = DB.orders.length;
+    if(rf){ rf.disabled = true; rf.textContent = 'Refreshing…'; }
+    await loadOrders(); renderOrdAdmin(); renderStats(); renderCustAdmin();
+    if(rf){ rf.disabled = false; rf.textContent = '↻ Refresh'; }
+    const n = DB.orders.length - before, nb = document.getElementById('ordNew');
+    if(nb && !manual && before && n > 0){ nb.textContent = '🔔 ' + n + ' new order' + (n===1?'':'s') + ' received'; nb.style.display = 'block'; setTimeout(()=>{ nb.style.display='none'; }, 8000); }
+  }
+  if(rf) rf.addEventListener('click',()=>refresh(true));
+  /* orders arrive while the admin panel is open: check every minute */
+  setInterval(()=>{ if(adminAuthed && document.getElementById('adminShell') && document.getElementById('adminShell').style.display!=='none' && document.getElementById('tab-ord').style.display!=='none') refresh(false); }, 60000);
+})();
 
 /* Group every order by phone number into a per-customer history */
 function customerList(){
@@ -1350,7 +1467,8 @@ function renderCustAdmin(){
 function openCustDetail(i){
   const c = window._custList[i]; if(!c) return;
   document.getElementById('custDetailName').textContent = c.name;
-  document.getElementById('custDetailPhone').textContent = c.phone + ' · ' + c.orders.length + ' order' + (c.orders.length===1?'':'s') + ' · ' + fmt(c.total) + ' total';
+  const last = c.orders[0] || {}, lastAd = splitAddress(last.address);
+  document.getElementById('custDetailPhone').textContent = c.phone + (last.email?' · '+last.email:'') + ' · ' + c.orders.length + ' order' + (c.orders.length===1?'':'s') + ' · ' + fmt(c.total) + ' total' + (lastAd.text?' · 📍 '+lastAd.text+(last.city?', '+last.city:''):'');
   document.getElementById('custDetailBody').innerHTML = c.orders.map(o=>`
     <tr>
       <td>${esc(o.code)}</td>
