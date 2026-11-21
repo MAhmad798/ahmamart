@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /login.html
+Disallow: /_source/
+Disallow: /supabase/
 
-Sitemap: https://ahmamart.netlify.app/sitemap.xml
+Sitemap: https://ahmamart.com/sitemap.xml
+Sitemap: https://ahmamart.com/sitemap-products.xml
