@@ -80,11 +80,109 @@ function renderChips(){
   }));
 }
 
+/* ===== Smart search =====
+   Words are compared in a forgiving way: shoe = shoes, watch = watches, and common English / Roman-Urdu synonyms
+   (jutay = shoes = footwear, ghari = watch, kapray = clothes ...). When no product matches, the related categories are shown. */
+const SEARCH_SYN = [
+  ['shoe','jute','jutay','joota','jootay','footwear','sandal','chappal','chapal','slipper','sneaker','boot','heel','khussa','peshawari'],
+  ['watch','ghari','gharian','wristwatch','smartwatch'],
+  ['bag','purse','handbag','backpack','thaila','wallet','clutch'],
+  ['shirt','tshirt','tee','kameez','qameez','kurta','top','polo','hoodie','sweatshirt','jacket','coat'],
+  ['dress','frock','gown','maxi','abaya','shalwar','suit','lawn'],
+  ['kid','child','children','baby','bache','bachay','bachon','boy','girl','toddler'],
+  ['men','man','gents','gent','mard','mardana','male'],
+  ['women','woman','lady','ladies','khawateen','zanana','female','girl'],
+  ['cloth','clothes','clothing','kapray','kapre','kapra','garment','apparel','fashion'],
+  ['phone','mobile','smartphone','cellphone','iphone','android'],
+  ['headphone','earphone','earbud','airpod','handsfree','speaker','charger','cable'],
+  ['jewelry','jewellery','jewel','ring','necklace','bracelet','earring','zewar','chain','bangle','churi'],
+  ['glass','sunglass','chashma','goggle','eyewear','spectacle'],
+  ['perfume','fragrance','attar','scent','spray','deodorant'],
+  ['cap','hat','topi'],
+  ['accessory','accessories','belt','scarf','dupatta','shawl'],
+  ['toy','game','gift']
+];
+const SEARCH_STOP = new Set(['the','and','for','with','best','new','buy','online','price','pk','in','of','an','kay','ke','ki','ka','ko','wala','wali','wale','chahiye','chahye','hai','ha','mein','me']);
+const searchWords = s => (String(s||'').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
+function stemWord(w){
+  if(w.length>4 && w.endsWith('ies')) return w.slice(0,-3)+'y';
+  if(w.length>3 && /(ch|sh|x|s|z)es$/.test(w)) return w.slice(0,-2);
+  if(w.length>3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0,-1);
+  return w;
+}
+const SYN_OF = (()=>{ const m = new Map(); SEARCH_SYN.forEach(g=>{ const st = g.map(stemWord); st.forEach(w=>{ if(!m.has(w)) m.set(w,new Set()); st.forEach(x=>m.get(w).add(x)); }); }); return m; })();
+const searchStems = s => searchWords(s).filter(w=>w.length>=2).map(stemWord);
+function searchTokens(term){ return searchWords(term).filter(w=>w.length>=2 && !SEARCH_STOP.has(w)).map(stemWord); }
+/* does the search word q (or one of its synonyms) match one of the haystack words? */
+function stemHit(q, hay){
+  const cands = SYN_OF.get(q) ? [...SYN_OF.get(q)] : [q];
+  return hay.some(h=>cands.some(c=> h===c || (c.length>=4 && h.includes(c)) || (h.length>=4 && c.length>=4 && c.includes(h))));
+}
+function catPathStems(id){
+  const out = []; let c = catById(id), guard = 0;
+  while(c && guard++<8){ out.push(...searchStems(c.name)); c = catById(catParentId(c)); }
+  return out;
+}
+function productMatchesSearch(p, term){
+  const t = String(term||'').toLowerCase().trim(); if(!t) return true;
+  if(String(p.name||'').toLowerCase().includes(t)) return true;            /* exact text in the name always counts */
+  const toks = searchTokens(term); if(!toks.length) return false;
+  const hay = [...searchStems(p.name), ...catPathStems(p.category_id)];
+  return toks.every(q=>stemHit(q,hay));
+}
+/* categories related to the search words (any level), best match first */
+function relatedCats(term){
+  const toks = searchTokens(term).filter(w=>w.length>=3);
+  if(!toks.length) return [];
+  const t = String(term||'').toLowerCase().trim();
+  return DB.categories.map(c=>{
+    const own = searchStems(c.name);
+    let score = toks.filter(q=>stemHit(q,own)).length;
+    if(String(c.name||'').toLowerCase().includes(t) && t.length>=3) score += 2;
+    return {c, score, n: productsInCat(c.id).length};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score || b.n-a.n).slice(0,6).map(x=>x.c);
+}
+/* what the grid should show for the current search: normal results, or (no product matched) products of related categories */
+function searchView(){
+  const list = filteredProducts();
+  const view = { list, related:[], mode:'normal', term:searchTerm };
+  if(!searchTerm) return view;
+  view.related = relatedCats(searchTerm);
+  if(list.length || activeCategory!=='') return view;
+  if(view.related.length){
+    const seen = new Set(); view.list = [];
+    view.related.forEach(c=>productsInCat(c.id).forEach(p=>{ if(!seen.has(p.id)){ seen.add(p.id); view.list.push(p); } }));
+    view.mode = 'related';
+  } else {
+    /* last try: any search word appears in the product name or description */
+    const toks = searchTokens(searchTerm);
+    view.list = toks.length ? DB.products.filter(p=>{ const hay = [...searchStems(p.name), ...searchStems(p.description), ...catPathStems(p.category_id)]; return toks.some(q=>stemHit(q,hay)); }) : [];
+    view.mode = view.list.length ? 'similar' : 'none';
+  }
+  return view;
+}
+function catTileHTML(c){
+  const n = productsInCat(c.id).length;
+  return `<a class="srch-cat" href="${catPageHref(c.id)}"><span class="srch-ico">${c.image_url?`<img src="${esc(c.image_url)}" alt="" loading="lazy" decoding="async">`:`<span aria-hidden="true">${catIcon(c.name)}</span>`}</span><span class="srch-txt"><b>${esc(c.name)}</b><small>${n} product${n===1?'':'s'}</small></span><i aria-hidden="true">›</i></a>`;
+}
+function searchNoteHTML(v){
+  if(!searchTerm) return '';
+  const q = `<b>“${esc(searchTerm)}”</b>`;
+  if(v.mode==='related') return `<div class="srch-note"><div class="srch-msg">No product named ${q} was found, but these categories may be what you are looking for:</div><div class="srch-cats">${v.related.map(catTileHTML).join('')}</div></div>`;
+  if(v.mode==='similar') return `<div class="srch-note"><div class="srch-msg">No exact match for ${q}. Similar products:</div></div>`;
+  if(v.mode==='none'){
+    const roots = catRoots().slice(0,8);
+    return `<div class="srch-note"><div class="srch-msg">Sorry, we could not find anything for ${q}. Try another word, or browse our categories:</div><div class="srch-cats">${roots.map(catTileHTML).join('')}</div></div>`;
+  }
+  if(v.related.length) return `<div class="srch-note slim"><div class="srch-msg">Related categories for ${q}:</div><div class="srch-cats">${v.related.map(catTileHTML).join('')}</div></div>`;
+  return '';
+}
+
 function filteredProducts(){
   const ids = activeCategory!=='' ? new Set(catDescendantIds(activeCategory)) : null;
   return DB.products.filter(p=>{
     if(ids && !ids.has(Number(p.category_id))) return false;
-    if(searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if(searchTerm && !productMatchesSearch(p, searchTerm)) return false;
     return true;
   });
 }
@@ -103,9 +201,13 @@ function discPct(p){
 }
 function productCardHTML(p){
   const d=discPct(p), st=pStock(p), low=st>0 && st<=5;
+  const gal = productGallery(p).slice(0,6), multi = gal.length>1;
+  const imgs = !gal.length ? `<span>${esc((p.name||'?')[0])}</span>`
+    : multi ? gal.map((u,i)=>`<img class="sl${i?'':' on'}" src="${esc(u)}" alt="${i?'':esc(p.name)}" ${i?'aria-hidden="true" ':''}loading="lazy" decoding="async">`).join('') + `<span class="cdots" aria-hidden="true">${gal.map((u,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</span>`
+    : `<img src="${esc(gal[0])}" alt="${esc(p.name)}" loading="lazy" decoding="async">`;
   return `
     <div class="card" data-open="${p.id}">
-      <div class="cimg">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy" decoding="async">`:`<span>${esc((p.name||'?')[0])}</span>`}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
+      <div class="cimg${multi?' multi':''}">${imgs}${d?`<span class="dbadge">-${d}%</span>`:''}</div>
       <div class="cbody">
         <div class="cname">${esc(p.name)}</div>
         <div class="prow"><span class="price">${fmt(p.price)}</span>${p.compare_at_price?`<span class="pcompare">${fmt(p.compare_at_price)}</span>`:''}</div>
@@ -122,9 +224,9 @@ function scrollToCat(id){
   const el = document.getElementById('cat-sec-'+id);
   if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 }
-function renderCatBlocks(){
+function renderCatBlocks(pool){
   const box = document.getElementById('catBlocks'), side = document.getElementById('catSide');
-  const matches = DB.products.filter(p=>!searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const matches = pool || DB.products.filter(p=>!searchTerm || productMatchesSearch(p, searchTerm));
   const cats = catRoots().map(c=>({id:c.id,name:c.name,image_url:c.image_url,n:productsInCat(c.id,matches).length}));
   const other = matches.filter(p=>!DB.categories.some(c=>c.id===p.category_id)).length;
   if(other) cats.push({id:0,name:'Other',n:other});
@@ -140,16 +242,20 @@ function renderCatBlocks(){
 /* Products grouped in separate blocks, one per category */
 function renderGrid(){
   document.body.classList.toggle('searching',!!searchTerm||activeCategory!=='');
-  const list = filteredProducts();
+  const view = searchView(), list = view.list;
   const wrap = document.getElementById('grid');
   const empty = document.getElementById('emptyState');
-  renderCatBlocks();
-  if(list.length===0){ wrap.innerHTML=''; empty.style.display='block'; return; }
+  renderCatBlocks(searchTerm ? (view.mode==='none' ? DB.products : list) : null);
+  const note = searchNoteHTML(view);
+  if(list.length===0){
+    empty.style.display = note ? 'none' : 'block';
+    wrap.innerHTML = note; return;
+  }
   empty.style.display='none';
   const groups = catRoots().map(c=>({id:c.id,name:c.name,items:productsInCat(c.id,list)}));
   const rest = list.filter(p=>!DB.categories.some(c=>c.id===p.category_id));
   if(rest.length) groups.push({id:0,name:'Other',items:rest});
-  wrap.innerHTML = groups.filter(g=>g.items.length).map(g=>`
+  wrap.innerHTML = note + groups.filter(g=>g.items.length).map(g=>`
     <section class="cat-section" id="cat-sec-${g.id}">
       <div class="cat-head"><span class="cat-ico">${catIcon(g.name)}</span><h2>${g.name}</h2><span class="cat-num">${g.items.length}</span>${g.id&&catHasChildren(g.id)?`<a class="cat-more" href="${catPageHref(g.id)}">Browse ${esc(g.name)} ›</a>`:''}</div>
       <div class="grid">${g.items.map(productCardHTML).join('')}</div>
@@ -1617,7 +1723,10 @@ function showProduct(rawId){
     <nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span>${catTrail.map(c=>`<a href="${catPageHref(c.id)}">${esc(c.name)}</a><span>›</span>`).join('')}<span class="cur">${esc(p.name)}</span></nav>
     <div class="pp">
       <div class="pp-gal">
-        <div class="pp-main" id="ppMain">${gal[0]?`<img src="${esc(gal[0])}" alt="${esc(p.name)}" decoding="async">`:`<span style="font-size:4rem;color:#bbb">${esc((p.name||'?')[0])}</span>`}</div>
+        <div class="pp-main${gal.length>1?' gal':''}" id="ppMain">${!gal[0]?`<span style="font-size:4rem;color:#bbb">${esc((p.name||'?')[0])}</span>`
+          : gal.length>1 ? gal.map((u,i)=>`<img class="sl${i?'':' on'}" src="${esc(u)}" alt="${esc(p.name)} photo ${i+1}" decoding="async" ${i?'loading="lazy"':''}>`).join('')
+              + `<button type="button" class="pp-nav prev" aria-label="Previous photo">‹</button><button type="button" class="pp-nav next" aria-label="Next photo">›</button><span class="pp-dots" aria-hidden="true">${gal.map((u,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</span>`
+          : `<img src="${esc(gal[0])}" alt="${esc(p.name)}" decoding="async">`}</div>
         ${gal.length>1?`<div class="pp-thumbs" id="ppThumbs">${gal.map((u,i)=>`<img class="${i?'':'on'}" data-url="${esc(u)}" src="${esc(u)}" alt="${esc(p.name)} photo ${i+1}" loading="lazy">`).join('')}</div>`:''}
       </div>
       <div class="pp-info">
@@ -1698,12 +1807,33 @@ function showProduct(rawId){
   if(plus) plus.addEventListener('click', ()=>setQ(qty+1));
   document.getElementById('ppCart').addEventListener('click', ()=>{ if(!inStock) return; const v = pickVariant(); if(v===false) return; addQty(p, qty, v); openCart(); });
   document.getElementById('ppOrder').addEventListener('click', ()=>{ if(!inStock) return; const v = pickVariant(); if(v===false) return; addQty(p, qty, v); openM(document.getElementById('checkoutOverlay')); });
-  const th = document.getElementById('ppThumbs');
-  if(th) th.addEventListener('click', e=>{
-    const im = e.target.closest('img'); if(!im) return;
-    document.getElementById('ppMain').innerHTML = `<img src="${esc(im.dataset.url)}" alt="${esc(p.name)}">`;
-    th.querySelectorAll('img').forEach(x=>x.classList.toggle('on', x===im));
-  });
+  const th = document.getElementById('ppThumbs'), mainEl = document.getElementById('ppMain');
+  if(th && mainEl && gal.length>1){
+    /* photos change by themselves every few seconds; any manual click/swipe pauses it for a while */
+    let gi = 0, pausedUntil = 0;
+    const slides = [...mainEl.querySelectorAll('img.sl')], dots = [...mainEl.querySelectorAll('.pp-dots i')], thumbs = [...th.querySelectorAll('img')];
+    const go = (i, manual)=>{
+      gi = (i + slides.length) % slides.length;
+      slides.forEach((im,k)=>im.classList.toggle('on', k===gi)); dots.forEach((d,k)=>d.classList.toggle('on', k===gi)); thumbs.forEach((t,k)=>t.classList.toggle('on', k===gi));
+      const t = thumbs[gi]; if(t && th.scrollTo) th.scrollTo({left: t.offsetLeft - th.clientWidth/2 + t.clientWidth/2, behavior:'smooth'});
+      if(manual) pausedUntil = Date.now() + 10000;
+    };
+    th.addEventListener('click', e=>{ const im = e.target.closest('img'); if(im) go(thumbs.indexOf(im), true); });
+    mainEl.querySelector('.pp-nav.prev').addEventListener('click', ()=>go(gi-1, true));
+    mainEl.querySelector('.pp-nav.next').addEventListener('click', ()=>go(gi+1, true));
+    let x0 = null;
+    mainEl.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+    mainEl.addEventListener('touchend', e=>{ if(x0===null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 40) go(gi + (dx<0 ? 1 : -1), true); }, {passive:true});
+    mainEl.addEventListener('mouseenter', ()=>{ pausedUntil = Date.now() + 4000; });
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!reduce){
+      const timer = setInterval(()=>{
+        if(!document.body.contains(mainEl)){ clearInterval(timer); return; }
+        if(document.hidden || Date.now() < pausedUntil || mainEl.matches(':hover')) return;
+        go(gi + 1);
+      }, 3500);
+    }
+  }
   const rel = document.getElementById('ppRelated');
   if(rel){
     rel.querySelectorAll('.addbtn:not([disabled])').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addToCart(Number(b.dataset.id)); }));
@@ -1779,6 +1909,24 @@ function showInfoPage(key){
     if(c.dataset.id && catGo(Number(c.dataset.id))) return;
     location.href = 'index.html' + (c.dataset.id ? '?cat=' + encodeURIComponent(c.dataset.id) : '');
   }, true);
+})();
+
+/* ===== product photos on the cards change by themselves (one shared timer; only cards on screen move) ===== */
+(function(){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  setInterval(()=>{
+    if(document.hidden) return;
+    document.querySelectorAll('.cimg.multi').forEach(el=>{
+      if(el.matches(':hover')) return;
+      const r = el.getBoundingClientRect(); if(r.bottom < 0 || r.top > innerHeight) return;
+      el._t = (el._t === undefined ? Math.floor(Math.random()*3) : el._t) + 1;   /* every card starts at a different moment */
+      if(el._t < 3) return; el._t = 0;
+      const sl = el.querySelectorAll('img.sl'); if(sl.length < 2) return;
+      const cur = [...sl].findIndex(i=>i.classList.contains('on')), nx = (cur + 1) % sl.length;
+      sl.forEach((i,k)=>i.classList.toggle('on', k===nx));
+      el.querySelectorAll('.cdots i').forEach((d,k)=>d.classList.toggle('on', k===nx));
+    });
+  }, 1000);
 })();
 
 /* ===== Animations ===== */

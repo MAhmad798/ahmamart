@@ -24,3 +24,11 @@
 2. Naya zip upload karein. Admin → **Orders** me ab har order ka card dikhta hai: customer (naam, phone, email, address, city),
    payment (COD / advance, TID, screenshot), har product (tasveer, naam, size/colour, price, qty, total), status, WhatsApp button,
    "Copy order details", search aur status filter. Naye orders har 1 minute me khud aa jate hain (Refresh button bhi hai).
+
+---
+# Search + photo slider (naya)
+- **Search:** agar customer ka search kiya hua product na ho lekin us se milti-julti category ho (jaise "jutay"/"shoes" -> Footwear, "ghari" -> Watches,
+  "kapray" -> Clothing), to wo category (tile) aur uske products dikhte hain. Product mil jaye tab bhi upar "Related categories" dikhti hain.
+  Kuch bhi na mile to saari categories dikhti hain. Koi SQL nahi chalani.
+- **Photos:** jis product ki 2+ tasveerain hon, uski card par har 3 second baad agli tasveer khud aati hai (loop me, dots ke saath).
+  Product page par bhi tasveerain khud badalti hain, arrows/swipe/thumbnail se bhi badal sakte hain.
