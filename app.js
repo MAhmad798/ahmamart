@@ -7,7 +7,7 @@ const esc = t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':
 async function loadPublic(){
   const [c,p,pi,pv]=await Promise.all([sb.from('categories').select('*').order('id'),sb.from('products').select('*').order('id'),sb.from('product_images').select('*').order('sort_order'),sb.from('product_variants').select('*').order('sort_order').order('id')]);
   if(c.error||p.error){ console.error(c.error||p.error); document.getElementById('grid').innerHTML='<p style="padding:24px;text-align:center">Store load nahin ho saka. Page refresh karein.</p>'; return; }
-  DB.categories=c.data; DB.products=p.data; DB.loaded=true;
+  DB.categories=c.data.slice().sort(catCmp); DB.products=p.data; DB.loaded=true;
   DB.images = {};
   if(!pi.error) for(const row of pi.data){ (DB.images[row.product_id] ||= []).push(row); }
   /* variants: if supabase-variants.sql has not been run yet, the table is missing and every product simply has no variants */
@@ -47,6 +47,8 @@ const saveCart = ()=> localStorage.setItem('usw_cart', JSON.stringify(cart));
 
 let activeCategory = '', searchTerm = '';
 
+/* categories are shown in the order set in Admin (sort_order); if that column does not exist yet, the old id order is used */
+function catCmp(a,b){ return (Number(a.sort_order)||0)-(Number(b.sort_order)||0) || Number(a.id)-Number(b.id); }
 function catName(id){ const c = DB.categories.find(c=>c.id===id); return c? c.name : ''; }
 
 /* ===== Category tree (categories can have sub-categories, any depth) =====
@@ -218,14 +220,14 @@ function productCardHTML(p){
 }
 function pdSetMain(url, name){ document.getElementById('pdImg').innerHTML = url?`<img src="${url}" alt="${esc(name)}">`:`<span style="font-size:3rem">${esc(name[0])}</span>`; }
 function openProductDetail(id){ location.href = 'product.html?id=' + encodeURIComponent(id); }
-/* Category circles (top) + category sidebar (desktop) */
+/* Category circles (Shop by category) */
 function scrollToCat(id){
   if(activeCategory!==''){ activeCategory=''; renderChips(); renderGrid(); }
   const el = document.getElementById('cat-sec-'+id);
   if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 }
 function renderCatBlocks(pool){
-  const box = document.getElementById('catBlocks'), side = document.getElementById('catSide');
+  const box = document.getElementById('catBlocks');
   const matches = pool || DB.products.filter(p=>!searchTerm || productMatchesSearch(p, searchTerm));
   const cats = catRoots().map(c=>({id:c.id,name:c.name,image_url:c.image_url,n:productsInCat(c.id,matches).length}));
   const other = matches.filter(p=>!DB.categories.some(c=>c.id===p.category_id)).length;
@@ -234,9 +236,7 @@ function renderCatBlocks(pool){
     cats.map(c=>`<button type="button" class="cb-tile" data-id="${c.id}">
       <span class="cb-ico">${c.image_url?`<img src="${esc(c.image_url)}" alt="${esc(c.name)}" loading="lazy" decoding="async">`:`<span aria-hidden="true">${catIcon(c.name)}</span>`}</span>
       <span class="cb-name">${esc(c.name)}</span></button>`).join('') + `</div>` : '';
-  if(side) side.innerHTML = cats.length ? `<div class="side-title">Categories</div>` +
-    cats.map(c=>`<button type="button" class="side-item" data-id="${c.id}"><span aria-hidden="true">${catIcon(c.name)}</span><span class="side-name">${esc(c.name)}</span><span class="side-count">${c.n}</span><i>›</i></button>`).join('') : '';
-  [box,side].forEach(root=>{ if(root) root.querySelectorAll('[data-id]').forEach(t=>t.addEventListener('click',()=>{ const id=Number(t.dataset.id); if(!catGo(id)) scrollToCat(id); })); });
+  [box].forEach(root=>{ if(root) root.querySelectorAll('[data-id]').forEach(t=>t.addEventListener('click',()=>{ const id=Number(t.dataset.id); if(!catGo(id)) scrollToCat(id); })); });
 }
 
 /* Products grouped in separate blocks, one per category */
@@ -806,8 +806,10 @@ function catTreeList(){
   return out;
 }
 const SUBCAT_SQL_MSG = 'Sub-categories ke liye pehle Supabase me "supabase-subcategories.sql" chalayen (SQL Editor me paste karke Run), phir dobara koshish karein.';
+const CATORDER_SQL_MSG = 'Category ka order save karne ke liye pehle Supabase me "supabase-category-order.sql" chalayen (SQL Editor me paste karke Run), phir dobara koshish karein.';
 function catErrMsg(err, fallback){
   const m = (err && err.message) || '';
+  if(/sort_order/i.test(m)) return CATORDER_SQL_MSG;
   if(/parent_id/i.test(m)) return SUBCAT_SQL_MSG;
   if(/image_url|column/i.test(m)) return 'Category picture support needs an image_url column in your Supabase categories table. Run the SQL instructions provided with this update, then try again.';
   return m || fallback;
@@ -817,16 +819,24 @@ function renderCatAdmin(){
   const prodCount = id => DB.products.filter(p=>Number(p.category_id)===Number(id)).length;
   document.getElementById('catBody').innerHTML = tree.map(({c,depth})=>{
     const kids = catChildren(c.id).length, n = prodCount(c.id), id = Number(c.id);
-    return `<tr>
+    const sibs = catSiblings(catParentId(c)), si = sibs.findIndex(x=>Number(x.id)===id);
+    return `<tr class="cat-row" data-id="${id}" draggable="true">
+    <td class="cat-handle-cell"><span class="cat-drag" title="Drag to move" aria-label="Drag to move">⠿</span></td>
     <td>${c.image_url?`<img class="cb-upload-img" loading="lazy" src="${esc(c.image_url)}" alt="">`:'—'}</td>
     <td><div class="cat-tree-name" style="padding-left:${depth*22}px">${depth?'<span class="cat-branch" aria-hidden="true">└</span>':''}<b>${esc(c.name)}</b> <small class="cat-meta">${n} product${n===1?'':'s'}${kids?` · ${kids} sub-categor${kids===1?'y':'ies'}`:''}</small></div></td>
     <td style="display:flex;gap:6px;flex-wrap:wrap">
+    <span class="cat-order-btns">
+      <button class="sm" type="button" title="Move up" aria-label="Move up" onclick="catStep(${id},-1)" ${si<=0?'disabled':''}>↑</button>
+      <button class="sm" type="button" title="Move down" aria-label="Move down" onclick="catStep(${id},1)" ${si>=sibs.length-1?'disabled':''}>↓</button>
+      <button class="sm" type="button" title="Move out one level (become a sibling of its parent)" aria-label="Move out one level" onclick="catOutdent(${id})" ${depth?'':'disabled'}>←</button>
+      <button class="sm" type="button" title="Move inside the category above it" aria-label="Move inside the category above" onclick="catIndent(${id})" ${si<=0?'disabled':''}>→</button>
+    </span>
     <button class="sm" type="button" onclick="addSubCat(${id})">+ Sub-category</button>
     <button class="sm" type="button" onclick="changeCatImage(${id})">Change picture</button>
     <button class="sm" type="button" onclick="renameCat(${id})">Rename</button>
-    <button class="sm" type="button" onclick="moveCat(${id})">Move</button>
+    <button class="sm" type="button" onclick="moveCat(${id})">Move…</button>
     <button class="sm dg" type="button" onclick="deleteCat(${id})">Delete</button></td></tr>`;
-  }).join('') || '<tr><td colspan="3" style="color:var(--ink-soft)">No categories yet. Add your first one above (e.g. Men).</td></tr>';
+  }).join('') || '<tr><td colspan="4" style="color:var(--ink-soft)">No categories yet. Add your first one above (e.g. Men).</td></tr>';
   const opts = tree.map(({c})=>`<option value="${c.id}">${esc(catPathName(c.id))}</option>`).join('');
   document.getElementById('catSelect').innerHTML = '<option value="">Uncategorized</option>' + opts;
   const ps = document.getElementById('catParentSelect');
@@ -836,6 +846,7 @@ function renderCatAdmin(){
   let note = document.getElementById('catSqlNote');
   if(!note){ note = document.createElement('div'); note.id = 'catSqlNote'; tbl.before(note); }
   note.innerHTML = (DB.categories.length && !('parent_id' in DB.categories[0])) ? `<div class="msg err" style="margin-bottom:12px">${esc(SUBCAT_SQL_MSG)}</div>` : '';
+  if(DB.categories.length && !('sort_order' in DB.categories[0])) note.innerHTML += `<div class="msg err" style="margin-bottom:12px">${esc(CATORDER_SQL_MSG)}</div>`;
 }
 document.getElementById('catForm').addEventListener('submit',async e=>{
   e.preventDefault(); const f=e.target, button=f.querySelector('button[type="submit"]');
@@ -860,30 +871,111 @@ function addSubCat(id){
   const f=document.getElementById('catForm'); f.parent_id.value=String(id);
   f.scrollIntoView({behavior:'smooth',block:'center'}); f.name.focus();
 }
-/* Move a category under another parent (or back to top level) */
+/* ===== Move / re-order categories =====
+   placeCat(id, parentId, index): put a category under parentId (null = top level) at position `index` among its siblings.
+   Positions are saved in the sort_order column (10, 20, 30 ...). */
+function catSiblings(pid){ return pid==null ? catRoots() : catChildren(pid); }
+function catRerender(){ renderCatAdmin(); renderProdAdmin(); renderChips(); renderGrid(); }
+async function placeCat(id, parentId, index){
+  id=Number(id); parentId=(parentId===''||parentId==null)?null:Number(parentId);
+  const c=catById(id); if(!c) return {ok:false,msg:'Category not found.'};
+  if(parentId!==null && catDescendantIds(id).includes(parentId)) return {ok:false,msg:'A category cannot be moved inside itself or its own sub-categories.'};
+  if(DB.categories.length && !('sort_order' in DB.categories[0])) return {ok:false,msg:CATORDER_SQL_MSG};
+  const sibs=catSiblings(parentId).filter(x=>Number(x.id)!==id);
+  index=Math.max(0,Math.min(Number(index)||0,sibs.length));
+  sibs.splice(index,0,c);
+  const changes=[];
+  sibs.forEach((x,i)=>{
+    const patch={}, so=(i+1)*10;
+    if(Number(x.sort_order)!==so) patch.sort_order=so;
+    if(Number(x.id)===id && catParentId(x)!==parentId) patch.parent_id=parentId;
+    if(Object.keys(patch).length) changes.push({id:Number(x.id),patch});
+  });
+  if(!changes.length) return {ok:true};
+  changes.forEach(ch=>Object.assign(catById(ch.id),ch.patch));   /* show the new order straight away */
+  DB.categories.sort(catCmp); catRerender();
+  const res=await Promise.all(changes.map(ch=>sb.from('categories').update(ch.patch).eq('id',ch.id)));
+  const bad=res.find(r=>r.error);
+  if(bad){ console.error(bad.error); await loadPublic(); catRerender(); return {ok:false,msg:catErrMsg(bad.error,'Could not save the new order.')}; }
+  return {ok:true};
+}
+async function catDo(p){ const r=await p; if(!r.ok && r.msg) alert(r.msg); return r; }
+function catStep(id,dir){   /* one place up (-1) or down (+1) among its siblings */
+  const c=catById(id); if(!c) return; const pid=catParentId(c)&&catById(catParentId(c))?catParentId(c):null;
+  const sibs=catSiblings(pid), i=sibs.findIndex(x=>Number(x.id)===Number(id)), t=i+dir;
+  if(i<0||t<0||t>=sibs.length) return; catDo(placeCat(id,pid,t));
+}
+function catOutdent(id){    /* become a sibling of the current parent, right after it */
+  const c=catById(id), p=c&&catById(catParentId(c)); if(!p) return;
+  const gp=catParentId(p)&&catById(catParentId(p))?catParentId(p):null;
+  const idx=catSiblings(gp).findIndex(x=>Number(x.id)===Number(p.id));
+  catDo(placeCat(id,gp,idx+1));
+}
+function catIndent(id){     /* go inside the category just above it (as its last sub-category) */
+  const c=catById(id); if(!c) return; const pid=catParentId(c)&&catById(catParentId(c))?catParentId(c):null;
+  const sibs=catSiblings(pid), i=sibs.findIndex(x=>Number(x.id)===Number(id)); if(i<=0) return;
+  const target=sibs[i-1]; catDo(placeCat(id,target.id,catChildren(target.id).length));
+}
 const catMoveModal=document.getElementById('catMoveModal');
+function fillMovePositions(keepIndex){
+  const f=document.getElementById('catMoveForm'), id=Number(f.id.value), pv=document.getElementById('catMoveSelect').value;
+  const sibs=catSiblings(pv===''?null:Number(pv)).filter(x=>Number(x.id)!==id);
+  const sel=document.getElementById('catMovePos');
+  sel.innerHTML='<option value="0">At the top (first)</option>'+sibs.map((x,i)=>`<option value="${i+1}">${i===sibs.length-1?'At the bottom (after':'After'} “${esc(x.name)}”${i===sibs.length-1?')':''}</option>`).join('');
+  sel.value=String(keepIndex==null?sibs.length:Math.min(keepIndex,sibs.length));
+}
 function moveCat(id){
   const c=catById(id); if(!c) return;
   const banned=new Set(catDescendantIds(id));   /* cannot move a category into itself or its own children */
   const f=document.getElementById('catMoveForm');
   f.id.value=id;
   document.getElementById('catMoveTitle').textContent='Move “'+c.name+'”';
-  document.getElementById('catMoveMsg').innerHTML='';
+  document.getElementById('catMoveMsg').innerHTML=(DB.categories.length && !('sort_order' in DB.categories[0]))?'<div class="msg err">'+esc(CATORDER_SQL_MSG)+'</div>':'';
   document.getElementById('catMoveSelect').innerHTML='<option value="">— Main category (top level) —</option>'+catTreeList().filter(({c:x})=>!banned.has(Number(x.id))).map(({c:x})=>`<option value="${x.id}">${esc(catPathName(x.id))}</option>`).join('');
-  document.getElementById('catMoveSelect').value=catParentId(c)==null?'':String(catParentId(c));
+  const cur=catParentId(c)&&catById(catParentId(c))?catParentId(c):null;
+  document.getElementById('catMoveSelect').value=cur==null?'':String(cur);
+  fillMovePositions(catSiblings(cur).findIndex(x=>Number(x.id)===Number(id)));   /* keep the current position by default */
   openM(catMoveModal);
 }
+document.getElementById('catMoveSelect').addEventListener('change',()=>fillMovePositions(null));
 document.getElementById('catMoveClose').addEventListener('click',()=>closeM(catMoveModal));
 document.getElementById('catMoveForm').addEventListener('submit',async e=>{
   e.preventDefault(); const f=e.target, id=Number(f.id.value), pv=f.parent_id.value;
   const btn=f.querySelector('button[type=submit]'); btn.disabled=true;
   try{
-    const r=await sb.from('categories').update({parent_id:pv?Number(pv):null}).eq('id',id);
-    if(r.error) throw r.error;
-    closeM(catMoveModal); await loadPublic(); renderCatAdmin(); renderProdAdmin(); renderChips(); renderGrid();
-  }catch(err){ console.error(err); document.getElementById('catMoveMsg').innerHTML='<div class="msg err">'+esc(catErrMsg(err,'Could not move category.'))+'</div>'; }
+    const r=await placeCat(id,pv===''?null:Number(pv),Number(document.getElementById('catMovePos').value));
+    if(!r.ok) throw new Error(r.msg);
+    closeM(catMoveModal);
+  }catch(err){ console.error(err); document.getElementById('catMoveMsg').innerHTML='<div class="msg err">'+esc(err.message||'Could not move category.')+'</div>'; }
   finally{ btn.disabled=false; }
 });
+/* drag & drop: drop on the top edge of a row = before it, bottom edge = after it, middle = inside it as a sub-category */
+(function(){
+  const body=document.getElementById('catBody'); if(!body) return;
+  let dragId=null;
+  const clear=()=>body.querySelectorAll('.drop-before,.drop-after,.drop-inside,.dragging').forEach(r=>r.classList.remove('drop-before','drop-after','drop-inside','dragging'));
+  const zoneOf=(tr,e)=>{ const r=tr.getBoundingClientRect(), y=(e.clientY-r.top)/r.height; return y<.28?'before':(y>.72?'after':'inside'); };
+  body.addEventListener('dragstart',e=>{ const tr=e.target.closest&&e.target.closest('tr.cat-row'); if(!tr) return; dragId=Number(tr.dataset.id); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(dragId)); }catch(_){} setTimeout(()=>tr.classList.add('dragging'),0); });
+  body.addEventListener('dragover',e=>{
+    const tr=e.target.closest&&e.target.closest('tr.cat-row'); if(!tr||dragId==null) return;
+    const tid=Number(tr.dataset.id); if(catDescendantIds(dragId).includes(tid)) return;   /* not onto itself / its own children */
+    e.preventDefault(); e.dataTransfer.dropEffect='move';
+    body.querySelectorAll('.drop-before,.drop-after,.drop-inside').forEach(r=>r.classList.remove('drop-before','drop-after','drop-inside'));
+    tr.classList.add('drop-'+zoneOf(tr,e));
+  });
+  body.addEventListener('drop',e=>{
+    const tr=e.target.closest&&e.target.closest('tr.cat-row'); if(!tr||dragId==null) return;
+    e.preventDefault();
+    const tid=Number(tr.dataset.id), zone=zoneOf(tr,e), id=dragId; dragId=null; clear();
+    if(catDescendantIds(id).includes(tid)) return;
+    const t=catById(tid); if(!t) return;
+    if(zone==='inside') return catDo(placeCat(id,tid,catChildren(tid).length));
+    const pid=catParentId(t)&&catById(catParentId(t))?catParentId(t):null;
+    const sibs=catSiblings(pid).filter(x=>Number(x.id)!==id), ti=sibs.findIndex(x=>Number(x.id)===tid);
+    catDo(placeCat(id,pid,zone==='before'?ti:ti+1));
+  });
+  body.addEventListener('dragend',()=>{ dragId=null; clear(); });
+})();
 async function changeCatImage(id){
   const c=DB.categories.find(x=>Number(x.id)===Number(id)); if(!c) return;
   const picker=document.createElement('input'); picker.type='file'; picker.accept='image/*';
@@ -1134,9 +1226,56 @@ if(newsletterForm) newsletterForm.addEventListener('submit',async e=>{
 });
 const INFO_PAGES = {
   about: { title:'About Us', html:`
-    <p>AhmaMart is an online store bringing everyday essentials to your doorstep, right here in Pakistan.</p>
-    <p>We believe shopping should be simple and reliable — browse, order, pay in advance (or on delivery for small orders), and we deliver to your door.</p>
-    <p>We're based in Usmanwala, Kasur, Punjab, and we're growing every day thanks to customers like you.</p>` },
+    <p class="ip-lead">AhmaMart is an online store bringing everyday essentials to your doorstep, right here in Pakistan. From beauty and home needs to fashion, electronics and kids' care, we want you to find what you use every day in one simple place.</p>
+
+    <h2>Who we are</h2>
+    <p>We are based in Usmanwala, Kasur, Punjab, and we serve customers across Pakistan. AhmaMart started with a simple idea: online shopping should be easy, honest and affordable for everyone — including people who prefer to pay by mobile wallet or in cash when the parcel arrives.</p>
+    <p>We are a growing store, and we grow because of customers like you. Every order, message and bit of feedback helps us improve what we sell and how we serve you.</p>
+
+    <h2>What you can shop</h2>
+    <p>Our catalogue is organised into easy categories so you can find things quickly, and we keep adding new products:</p>
+    <ul>
+      <li><strong>Beauty &amp; Personal Care</strong> and <strong>Health &amp; Fitness</strong></li>
+      <li><strong>Home Essentials</strong> and <strong>Home &amp; Kitchen</strong></li>
+      <li><strong>Fashion &amp; Lifestyle</strong>, <strong>Footwear &amp; Bags</strong> and <strong>Jewelry &amp; Watches</strong></li>
+      <li><strong>Electronics &amp; Mobile Accessories</strong></li>
+      <li><strong>Grocery &amp; Food</strong></li>
+      <li><strong>Baby &amp; Kids Care</strong> and <strong>Sports</strong></li>
+    </ul>
+    <p>Look out for the <strong>Super Deals</strong> and <strong>Just for you</strong> sections on our home page for reduced prices and the latest arrivals.</p>
+
+    <h2>How ordering works</h2>
+    <ol class="ip-steps">
+      <li><strong>Browse and add to cart.</strong> Search for a product or open a category, check the price, photos and any size or colour options, and add it to your cart.</li>
+      <li><strong>Checkout in a minute.</strong> Enter your name, phone number and delivery address. No account or card is needed — you can shop as a guest, or create a free account to save your details.</li>
+      <li><strong>Choose how to pay.</strong> Pay in advance with JazzCash, EasyPaisa or SadaPay, or choose <strong>Cash on Delivery</strong> on small orders (up to ${fmt(PAYMENT.cod.maxTotal)}).</li>
+      <li><strong>We confirm and dispatch.</strong> Advance-payment orders are dispatched once your payment is verified; Cash on Delivery orders once we have confirmed the order with you.</li>
+      <li><strong>Track and receive.</strong> Most orders arrive within 2–5 business days. Use <em>Track order</em> or <em>My orders</em> with your order code and phone number to follow your parcel.</li>
+    </ol>
+
+    <h2>Why shop with AhmaMart</h2>
+    <div class="ip-grid">
+      <div class="ip-card"><b>💳 Flexible payment</b><span>Advance payment through mobile wallets, or Cash on Delivery on small orders.</span></div>
+      <div class="ip-card"><b>🚚 Pakistan-wide delivery</b><span>We deliver to cities and towns across the country, usually in 2–5 business days.</span></div>
+      <div class="ip-card"><b>↩️ Easy returns</b><span>Damaged, incorrect or not-as-described items can be reported within 3 days of delivery.</span></div>
+      <div class="ip-card"><b>💬 Real human support</b><span>Message us on WhatsApp, call or email — a real person from our team replies.</span></div>
+      <div class="ip-card"><b>🔒 Your data stays with us</b><span>We use your details only to process and deliver your order. We never sell them.</span></div>
+      <div class="ip-card"><b>🛍️ Simple and clear</b><span>The total is shown before you confirm, and you can order without creating an account.</span></div>
+    </div>
+
+    <h2>Our promise</h2>
+    <ul>
+      <li><strong>Honest listings:</strong> we describe products as accurately as we can, with clear prices and photos.</li>
+      <li><strong>Careful handling:</strong> orders are checked and packed with care before they are handed to the courier.</li>
+      <li><strong>Fair service:</strong> if something goes wrong — a delay, a damaged item or a wrong product — tell us and we will work to put it right.</li>
+      <li><strong>Respect for your privacy:</strong> read how we handle your information in our <a href="privacy-policy.html">Privacy Policy</a>.</li>
+    </ul>
+
+    <h2>Get in touch</h2>
+    <p>Questions about a product, an order or a delivery? We are happy to help.</p>
+    <p>📧 Email: <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a><br>📞 Phone: <a href="tel:03296063123" style="color:var(--gold)">0329 6063123</a><br>💬 WhatsApp: <a href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AMujhe%20aap%20ke%20store%20se%20order%20ke%20baray%20mein%20maloomat%20chahiye.%20Meri%20details%20yeh%20hain%3A%0A%0A%F0%9F%91%A4%20Naam%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20Sheher%20%2F%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20ka%20naam%20ya%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0AMeherbani%20karke%20yeh%20batayen%3A%0A1%29%20Kya%20product%20abhi%20stock%20mein%20hai%3F%0A2%29%20Product%20ki%20price%20aur%20delivery%20charges%0A3%29%20Mere%20sheher%20mein%20delivery%20ka%20waqt%0A4%29%20Payment%20ka%20tareeqa%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMera%20mazeed%20sawal%3A%20%0A%0AJawab%20ka%20intezar%20rahega.%20Shukriya%21%20%F0%9F%99%8F" target="_blank" rel="noopener" style="color:var(--gold)">Chat with us</a><br>📍 Address: Usmanwala, Kasur, Punjab, Pakistan</p>
+    <p>You may also find answers in our <a href="faq.html">FAQ</a>, <a href="shipping-policy.html">Shipping Policy</a> and <a href="refund-policy.html">Return, Refund &amp; Cancellation</a> pages. Thank you for choosing AhmaMart!</p>
+` },
   faq: { title:'Frequently Asked Questions', html:`
     <p><strong>How do I place an order?</strong><br>Add items to your cart, go to checkout, and fill in your name, phone number, and address. No account or card needed.</p>
     <p><strong>How does payment work?</strong><br>You can pay in advance — send the amount to our JazzCash, EasyPaisa or SadaPay account, then add the transaction ID and your payment screenshot at checkout — and we process your order once the payment is confirmed. For small orders (up to ${fmt(PAYMENT.cod.maxTotal)}) you can also choose <b>Cash on Delivery</b> and pay the courier when your parcel arrives.</p>
@@ -1147,7 +1286,7 @@ const INFO_PAGES = {
     <p>We'd love to hear from you — questions, order help, or feedback, reach out any time.</p>
     <p>📧 Email: <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a></p>
     <p>📞 Phone: <a href="tel:03296063123" style="color:var(--gold)">0329 6063123</a></p>
-    <p>💬 WhatsApp: <a href="https://wa.me/923296063123" target="_blank" rel="noopener" style="color:var(--gold)">Chat with us</a></p>
+    <p>💬 WhatsApp: <a href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AMujhe%20aap%20ke%20store%20se%20order%20ke%20baray%20mein%20maloomat%20chahiye.%20Meri%20details%20yeh%20hain%3A%0A%0A%F0%9F%91%A4%20Naam%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20Sheher%20%2F%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20ka%20naam%20ya%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0AMeherbani%20karke%20yeh%20batayen%3A%0A1%29%20Kya%20product%20abhi%20stock%20mein%20hai%3F%0A2%29%20Product%20ki%20price%20aur%20delivery%20charges%0A3%29%20Mere%20sheher%20mein%20delivery%20ka%20waqt%0A4%29%20Payment%20ka%20tareeqa%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMera%20mazeed%20sawal%3A%20%0A%0AJawab%20ka%20intezar%20rahega.%20Shukriya%21%20%F0%9F%99%8F" target="_blank" rel="noopener" style="color:var(--gold)">Chat with us</a></p>
     <p>📍 Address: Usmanwala, Kasur, Punjab, Pakistan</p>` },
   shipping: { title:'Shipping Policy', html:`
     <p>We currently deliver across Pakistan. Advance-payment orders are dispatched after your payment is confirmed; Cash on Delivery orders are dispatched once we have confirmed the order with you.</p>
@@ -1161,11 +1300,84 @@ const INFO_PAGES = {
     <p><strong>Refunds:</strong> for orders paid in advance or online, approved refunds are processed via bank transfer or mobile wallet to the details you provide — we'll confirm the method with you directly. Approved refunds on Cash on Delivery orders are handled the same way.</p>
     <p>Items must be unused and in their original packaging to be eligible for return, unless the issue is a defect or wrong item received.</p>` },
   privacy: { title:'Privacy Policy', html:`
-    <p>We collect only the information needed to process your order: your name, phone number, and delivery address.</p>
-    <p>If you choose to create an optional account, we also store your email address (and the name and phone number you give us) so we can sign you in and pre-fill your details at checkout. You can always shop as a guest instead.</p>
-    <p>This information is used solely to fulfil and deliver your order, contact you if there's an issue with your order.</p>
-    <p>We do not sell or share your personal information with third parties, other than the courier needed to deliver your package.</p>
-    <p>If you have any questions about how your information is handled, contact us at <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a>.</p>` },
+    <p class="ip-meta">Last updated: 21 November 2026</p>
+    <p class="ip-lead">Your privacy matters to us. This policy explains what personal information AhmaMart collects when you visit our website or place an order, why we collect it, how we use and protect it, who we share it with, and the choices you have.</p>
+    <p>By browsing our website or placing an order, you agree to the practices described here. If you do not agree, please do not use the site.</p>
+
+    <h2>1. Who we are</h2>
+    <p>AhmaMart is an online store based in Usmanwala, Kasur, Punjab, Pakistan, delivering across Pakistan. In this policy, "AhmaMart", "we", "us" and "our" mean the store operating this website. You can reach us at <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a> or on <a href="tel:03296063123" style="color:var(--gold)">0329 6063123</a>.</p>
+
+    <h2>2. Information we collect</h2>
+    <p><strong>a) Order and delivery details.</strong> When you place an order we collect your name, phone number, delivery address and city, and optionally your email address and any note you add. We also record the items you ordered, the order total and the order code.</p>
+    <p><strong>b) Payment details.</strong> For advance-payment orders we collect the payment method you used (JazzCash, EasyPaisa or SadaPay), your transaction ID and the payment screenshot you upload so we can verify your payment. For Cash on Delivery orders we only record that you chose cash. We do <strong>not</strong> ask for, see or store your card number, PIN, OTP or wallet password. If online card or wallet payment is offered at checkout, it is processed on the payment provider's own secure page.</p>
+    <p><strong>c) Optional account.</strong> If you create an account we store your email address, the name and phone number you provide, and your sign-in credentials. Your password is handled by our authentication provider and is not visible to us in plain text. You can always shop as a guest instead.</p>
+    <p><strong>d) Newsletter.</strong> If you subscribe to updates, we store your email address so we can send you new arrivals and offers.</p>
+    <p><strong>e) Messages.</strong> When you contact us by WhatsApp, phone or email, we keep the conversation and the details you share so we can help you and follow up on your order.</p>
+    <p><strong>f) Technical and usage data.</strong> Like most websites, we may receive basic information such as your browser type, device, approximate location, pages visited and time spent, collected through analytics tools (see section 6).</p>
+    <p><strong>g) Information stored in your browser.</strong> To make shopping smoother, your browser stores items in your cart, your recent order codes and the last phone number you used, so "My orders" and checkout can be pre-filled on that device.</p>
+
+    <h2>3. How we use your information</h2>
+    <ul>
+      <li>To process, confirm, pack and deliver your orders, and to verify your payment.</li>
+      <li>To contact you about your order — for example to confirm a Cash on Delivery order, clarify an address, or tell you about a delay.</li>
+      <li>To let you track your orders and view your order history.</li>
+      <li>To handle returns, refunds, cancellations and complaints.</li>
+      <li>To provide customer support and answer your questions.</li>
+      <li>To send newsletters and offers, only if you subscribed — you can unsubscribe at any time.</li>
+      <li>To keep our website secure, prevent fraud and fake orders, and fix technical problems.</li>
+      <li>To understand how the site is used so we can improve our products and service.</li>
+      <li>To meet our legal, tax and accounting obligations.</li>
+    </ul>
+
+    <h2>4. Who we share your information with</h2>
+    <p><strong>We do not sell or rent your personal information.</strong> We share it only with the people and services needed to run the store:</p>
+    <ul>
+      <li><strong>Couriers and delivery partners</strong> — your name, phone number, address and order details, so your parcel can be delivered to you.</li>
+      <li><strong>Payment providers</strong> — only what is needed to complete or verify a payment you choose to make (for example, a payment gateway if online payment is available).</li>
+      <li><strong>Technology providers</strong> — our website, database, sign-in and file-storage services, which store and process data on our behalf under their own security measures.</li>
+      <li><strong>Analytics providers</strong> — such as Google Analytics, which help us understand site usage in aggregate.</li>
+      <li><strong>Authorities</strong> — if we are required to do so by law, a court order or a valid legal request, or to protect our rights and the safety of our customers.</li>
+    </ul>
+
+    <h2>5. Payment information and screenshots</h2>
+    <p>Payment screenshots are used only to confirm that your payment was received. Please hide or crop anything unrelated to the payment — such as your wallet balance or other transactions — before uploading. Access to payment screenshots and order details is limited to the AhmaMart team members who need them to process your order.</p>
+
+    <h2>6. Cookies, local storage and analytics</h2>
+    <p>Our website uses small pieces of data stored in your browser (such as local storage) to remember your cart, your recent orders and your sign-in session, and to load pages faster. We also use Google Analytics to collect anonymous usage statistics. You can clear this data or block cookies in your browser settings at any time; the site will still work, but your cart and order history on that device may be reset.</p>
+
+    <h2>7. How long we keep your information</h2>
+    <p>We keep order and payment records for as long as needed to deliver your order, handle returns and disputes, provide support, and meet legal and accounting requirements. Account details are kept until you ask us to delete your account. Newsletter emails are kept until you unsubscribe. When information is no longer needed, we delete or anonymise it.</p>
+
+    <h2>8. How we protect your information</h2>
+    <p>We take reasonable technical and organisational steps to protect your information, including secure (HTTPS) connections, access controls so that only authorised team members can view orders, and trusted infrastructure providers. However, no method of transmission or storage on the internet is completely secure, so we cannot guarantee absolute security. Please keep your account password private.</p>
+
+    <h2>9. Your choices and rights</h2>
+    <p>You may, at any time:</p>
+    <ul>
+      <li><strong>Ask to see</strong> the personal information we hold about you.</li>
+      <li><strong>Ask us to correct</strong> information that is wrong or out of date.</li>
+      <li><strong>Ask us to delete</strong> your information or your account. We may need to keep certain order records where the law or an open dispute requires it.</li>
+      <li><strong>Unsubscribe</strong> from our newsletter or ask us to stop sending offers.</li>
+      <li><strong>Shop as a guest</strong> without creating an account.</li>
+    </ul>
+    <p>To make a request, email us at <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a> or message us on WhatsApp, and include your order code or the phone number used on your order so we can confirm it is you. We will respond as soon as reasonably possible.</p>
+
+    <h2>10. Calls, SMS and WhatsApp</h2>
+    <p>We may call, text or WhatsApp you on the number you provide to confirm your order, arrange delivery or resolve a problem. These are service messages. We will send promotional messages only if you have agreed to receive them, and you can ask us to stop at any time.</p>
+
+    <h2>11. Children's privacy</h2>
+    <p>Our store is intended for adults. We do not knowingly collect personal information from children under 13. If you believe a child has given us their information, please contact us and we will delete it.</p>
+
+    <h2>12. Links to other websites</h2>
+    <p>Our website may contain links to other websites, payment pages or social media. We are not responsible for the privacy practices of those third parties, so please read their policies before sharing your information.</p>
+
+    <h2>13. Changes to this policy</h2>
+    <p>We may update this Privacy Policy from time to time — for example if we add a new payment option or service. The "Last updated" date at the top shows when it was last changed. Continuing to use the site after an update means you accept the revised policy.</p>
+
+    <h2>14. Contact us</h2>
+    <p>If you have any questions or concerns about this policy or how your information is handled, please contact us:</p>
+    <p>📧 <a href="mailto:helloahmamar@gmail.com" style="color:var(--gold)">helloahmamar@gmail.com</a><br>📞 <a href="tel:03296063123" style="color:var(--gold)">0329 6063123</a><br>💬 <a href="https://wa.me/923296063123" target="_blank" rel="noopener" style="color:var(--gold)">WhatsApp</a><br>📍 Usmanwala, Kasur, Punjab, Pakistan</p>
+` },
   terms: { title:'Terms of Service', html:`
     <p>By placing an order on AhmaMart, you agree to provide accurate name, phone number, and address so your order can be delivered successfully.</p>
     <p>Prices and product availability are subject to change without prior notice. We'll always confirm your order total before delivery.</p>
@@ -1716,7 +1928,7 @@ function showProduct(rawId){
   }
   const gal = productGallery(p), d = discPct(p), cat = catPathName(p.category_id), catTrail = catPath(p.category_id), pst = pStock(p), inStock = pst > 0;
   const stockTxt = !inStock ? 'Out of stock' : (pst <= 5 ? `Only ${pst} left in stock` : 'In stock');
-  const waText = `Assalam o Alaikum! Mujhe is product ke baray mein maloomat chahiye:\n${p.name} (${fmt(p.price)})\n${location.href}`;
+  const waText = `Assalam o Alaikum AhmaMart Team! 👋\n\nMujhe is product ke baray mein maloomat chahiye:\n\n🛍️ Product: ${p.name}\n💰 Price: ${fmt(p.price)}\n🔗 Link: ${location.href}\n\nMeri details:\n👤 Naam: \n📍 Sheher / City: \n🔢 Quantity: \n📏 Size / Colour (agar ho): \n\nMeherbani karke yeh batayen:\n1) Kya yeh product abhi stock mein hai?\n2) Delivery charges aur mere sheher mein delivery ka waqt\n3) Payment ka tareeqa (JazzCash / EasyPaisa / SadaPay / Cash on Delivery)\n\nJawab ka intezar rahega. Shukriya! 🙏`;
   const related = DB.products.filter(x=>x.id!==p.id && pStock(x)>0)
     .sort((a,b)=>(b.category_id===p.category_id)-(a.category_id===p.category_id) || Number(b.id)-Number(a.id)).slice(0,6);
   pv.innerHTML = `<div class="pg">
@@ -2019,6 +2231,18 @@ function prefillCheckout(){
   slides.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true});
   slides.addEventListener('touchend',e=>{ if(x0===null) return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40){ go(i+(dx<0?1:-1)); play(); } x0=null; });
   play();
+  /* 3D tilt: the banner object follows the mouse (desktop only) */
+  const box=document.getElementById('slider'); let raf=0,px=0,py=0;
+  if(box && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const apply=()=>{ raf=0;
+      const art=box.querySelector('.slide.act .art3d'); if(!art) return;
+      const r=art.getBoundingClientRect(), w=box.getBoundingClientRect().width/2;
+      const cl=v=>Math.max(-1,Math.min(1,v));
+      box.style.setProperty('--mx',cl((px-(r.left+r.width/2))/w).toFixed(3));
+      box.style.setProperty('--my',cl((py-(r.top+r.height/2))/(r.height)).toFixed(3)); };
+    box.addEventListener('pointermove',e=>{ if(e.pointerType==='touch') return; px=e.clientX; py=e.clientY; if(!raf) raf=requestAnimationFrame(apply); });
+    box.addEventListener('pointerleave',()=>{ box.style.setProperty('--mx',0); box.style.setProperty('--my',0); });
+  }
 })();
 
 (function(){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', handlePayReturn); else handlePayReturn(); })();
