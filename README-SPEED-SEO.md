@@ -23,3 +23,13 @@ home par H1 + text, robots.txt, sitemap.xml, api/sitemap-products.js (sirf Verce
 - "My orders" / "Track order": phone number ab kisi bhi style me chalta hai (03001234567, 0300-1234567, +92 300 1234567, 3001234567).
 - Supabase me `supabase-track-orders.sql` ek baar Run karein (yeh `list_customer_orders` aur `track_order` ko last-10-digits matching ke saath dobara banati hai).
 - SQL se pehle bhi website number ke kai spellings try karke orders dhoondti hai, lekin pakka hal SQL hai.
+
+## Accessibility (22 Nov 2026)
+- Nayi file `a11y.js` (har page par load hoti hai). Yeh keyboard aur screen-reader support deti hai:
+  "Skip to main content" link, har popup (cart, checkout, track order, my orders, product detail...) par `role="dialog"` + `aria-modal` + naam,
+  popup khulne par focus andar jata hai, Tab popup ke andar hi ghoomta hai, Esc se band hota hai, band hone par focus wapas usi button par,
+  band cart drawer ab Tab me nahi aata, message areas (checkout/payment/track/newsletter) screen reader ko announce hote hain,
+  product cards Tab + Enter/Space se khulte hain, cart count badalne par "Cart: N items" announce hota hai.
+- app.js me koi tabdeeli nahi hui. a11y.js purane "on" class ko dekhti hai jo app.js popup kholne/band karne ke liye pehle se lagata hai.
+- Naye popup ka markup `.modal-overlay > .modal` rakhein to wo khud-ba-khud is me shamil ho jayega.
+- style.css ke aakhir me skip-link aur focus-ring ki styling add hui. Version `?v=20261122e` kar diya gaya hai.
