@@ -55,7 +55,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261122e">
+<link rel="stylesheet" href="style.css?v=20261123a">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -421,8 +421,11 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
         <table><thead><tr><th style="width:34px"></th><th>Picture</th><th>Name</th><th>Actions</th></tr></thead><tbody id="catBody"></tbody></table>
       </section>
       <section id="tab-ord" style="display:none">
-        <h2 style="margin-bottom:16px">Orders</h2>
-        <table><thead><tr><th>Code</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody id="ordBody"></tbody></table>
+        <div class="ord-bar"><h2>Orders</h2><button type="button" class="sm" id="ordRefresh">↻ Refresh</button></div>
+        <div id="ordNew" class="ord-new" role="status" style="display:none"></div>
+        <input type="search" id="ordSearch" class="ord-search" placeholder="Search by order code, name, phone, address, product…" aria-label="Search orders">
+        <div id="ordFilters" class="ord-filters"></div>
+        <div id="ordBody" class="ord-list"></div>
       </section>
       <section id="tab-pay" style="display:none">
         <h2 style="margin-bottom:6px">Payment proofs</h2>
@@ -554,8 +557,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="app.js?v=20261122e"></script>
-<script defer src="a11y.js?v=20261122e"></script>
+<script defer src="app.js?v=20261123a"></script>
+<script defer src="reviews.js?v=20261123a"></script>
+<script defer src="a11y.js?v=20261123a"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AMujhe%20aap%20ke%20store%20se%20order%20ke%20baray%20mein%20maloomat%20chahiye.%20Meri%20details%20yeh%20hain%3A%0A%0A%F0%9F%91%A4%20Naam%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20Sheher%20%2F%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20ka%20naam%20ya%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0AMeherbani%20karke%20yeh%20batayen%3A%0A1%29%20Kya%20product%20abhi%20stock%20mein%20hai%3F%0A2%29%20Product%20ki%20price%20aur%20delivery%20charges%0A3%29%20Mere%20sheher%20mein%20delivery%20ka%20waqt%0A4%29%20Payment%20ka%20tareeqa%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMera%20mazeed%20sawal%3A%20%0A%0AJawab%20ka%20intezar%20rahega.%20Shukriya%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">
