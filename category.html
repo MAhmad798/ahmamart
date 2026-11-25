@@ -53,7 +53,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261123a">
+<link rel="stylesheet" href="style.css?v=20261125c">
 </head>
 <body class="inpage" data-page="category">
 
@@ -172,23 +172,53 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
       <div class="field"><label>Full name</label><input required name="name"></div>
       <div class="field"><label>Phone number</label><input required name="phone" type="tel" autocomplete="tel" placeholder="03XXXXXXXXX"></div>
       <div class="field"><label>Email address</label><input required name="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
-      <div class="field"><label>City</label><input name="city"></div>
-      <div class="field"><label>Full delivery address</label><textarea required name="address"></textarea></div>
+      <div class="field"><label for="addrCountry">Country</label><input id="addrCountry" value="Pakistan" readonly aria-readonly="true" tabindex="-1" class="ro-field"></div>
+      <div class="field"><label id="addrPickLbl">Province / City / Area <span class="req">*</span></label>
+        <button type="button" class="addr-pick" id="addrPick" aria-haspopup="dialog" aria-labelledby="addrPickLbl addrPickTxt"><span class="ph" id="addrPickTxt">Select province / city / area</span><i aria-hidden="true">›</i></button>
+        <input type="hidden" name="city" id="addrCity"></div>
+      <div class="field"><label>Home address <span class="req">*</span></label><textarea required name="address" placeholder="House no. / building / street / landmark"></textarea></div>
       <button class="btn" type="submit">Continue to payment ›</button>
     </form>
-    <div id="payStep" style="display:none">
-      <div class="ps-amount"><span>Amount to pay</span><b id="psAmt"></b><button type="button" class="copy" id="psCopyAmt">Copy</button></div>
-      <ol class="ps-steps"><li>Send the amount to any one account below.</li><li>Enter the transaction ID (TID) from your payment SMS or app.</li><li>Tap “I have paid” — your order is placed and your receipt is created.</li></ol>
-      <div id="psAccounts"></div>
-      <div class="field"><label>Which method did you use?</label><select id="psMethod"></select></div>
-      <div class="field"><label>Transaction ID (TID)</label><input id="psTid" placeholder="e.g. 1234567890" autocomplete="off" inputmode="text"></div>
-      <div class="field"><label>Payment screenshot <span style="color:var(--ae)">*</span></label>
-        <label class="shot" id="psShotBox"><input type="file" id="psShot" accept="image/*" hidden><img id="psShotPrev" alt="Screenshot preview" style="display:none"><span id="psShotTxt">📎 Tap to attach your payment screenshot</span></label></div>
-      <div id="psMsg"></div>
-      <button class="btn" id="psConfirm" type="button">I have paid — Place order</button>
-      <button class="link" id="psBack" type="button" style="margin-top:8px">← Edit delivery details</button>
-      <p class="pi-n" style="text-align:center">You can also send your payment screenshot on WhatsApp after the order.</p>
+    <div id="payStep" class="pay2" style="display:none">
+      <div class="pay-body">
+        <div class="pay-info" id="payInfo"></div>
+        <div id="pmList" role="radiogroup" aria-label="Payment method">
+          <div class="pay-sec" id="pmRecH">Recommended method(s)</div>
+          <div id="pmRec"></div>
+          <div class="pay-sec">Other Payment Methods</div>
+          <div id="pmOth"></div>
+        </div>
+      </div>
+      <div id="pmPark" hidden>
+        <div class="pm-adv" id="pmAdv" hidden>
+          <div class="ps-amount"><span>Amount to pay</span><b id="psAmt"></b><button type="button" class="copy" id="psCopyAmt">Copy</button></div>
+          <ol class="ps-steps"><li>Send the amount to the account below.</li><li>Enter the transaction ID (TID) from your payment SMS or app.</li><li>Attach your payment screenshot, then tap “I have paid” — your order is placed and your receipt is created.</li></ol>
+          <div id="psAccounts"></div>
+          <select id="psMethod" hidden aria-hidden="true" tabindex="-1"></select>
+          <div class="field"><label>Transaction ID (TID)</label><input id="psTid" placeholder="e.g. 1234567890" autocomplete="off" inputmode="text"></div>
+          <div class="field"><label>Payment screenshot <span style="color:var(--ae)">*</span></label>
+            <label class="shot" id="psShotBox"><input type="file" id="psShot" accept="image/*" hidden><img id="psShotPrev" alt="Screenshot preview" style="display:none"><span id="psShotTxt">📎 Tap to attach your payment screenshot</span></label></div>
+          <p class="pi-n">You can also send your payment screenshot on WhatsApp after the order.</p>
+        </div>
+      </div>
+      <div class="pay-foot">
+        <div id="psMsg"></div>
+        <div class="pay-sum"><span>Subtotal</span><b id="psSub"></b></div>
+        <div class="pay-sum tot"><span>Total Amount</span><b id="psTot"></b></div>
+        <button class="btn" id="psConfirm" type="button">I have paid — Place order</button>
+        <button class="link" id="psBack" type="button">← Edit delivery details</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay addr-ov" id="addrOverlay">
+  <div class="modal addr-sheet">
+    <div class="addr-head"><h3 id="addrTitle">Select address</h3><button class="mclose" id="addrClose" type="button">&times;</button></div>
+    <div class="addr-tabs" id="addrTabs" role="tablist" aria-label="Address steps"></div>
+    <div class="addr-search"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="addrSearch" type="search" placeholder="Search" autocomplete="off" aria-label="Search"></div>
+    <div id="addrMsg" role="status"></div>
+    <ul class="addr-list" id="addrList"></ul>
   </div>
 </div>
 
@@ -453,9 +483,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="app.js?v=20261123a"></script>
-<script defer src="reviews.js?v=20261123a"></script>
-<script defer src="a11y.js?v=20261123a"></script>
+<script defer src="app.js?v=20261125c"></script>
+<script defer src="reviews.js?v=20261125c"></script>
+<script defer src="a11y.js?v=20261125c"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AMujhe%20aap%20ke%20store%20se%20order%20ke%20baray%20mein%20maloomat%20chahiye.%20Meri%20details%20yeh%20hain%3A%0A%0A%F0%9F%91%A4%20Naam%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20Sheher%20%2F%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20ka%20naam%20ya%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0AMeherbani%20karke%20yeh%20batayen%3A%0A1%29%20Kya%20product%20abhi%20stock%20mein%20hai%3F%0A2%29%20Product%20ki%20price%20aur%20delivery%20charges%0A3%29%20Mere%20sheher%20mein%20delivery%20ka%20waqt%0A4%29%20Payment%20ka%20tareeqa%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMera%20mazeed%20sawal%3A%20%0A%0AJawab%20ka%20intezar%20rahega.%20Shukriya%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">
