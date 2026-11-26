@@ -2,6 +2,7 @@
 <html lang="en-PK">
 <head>
 <meta charset="UTF-8">
+<script>/* theme: applied before first paint so there is no white flash */(function(){try{var t=localStorage.getItem("ahma_theme");if(t!=="dark"&&t!=="light")t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -55,7 +56,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261125c">
+<link rel="stylesheet" href="style.css?v=20261126a">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -85,6 +86,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  ]
 }
 </script>
+<script src="theme.js?v=20261126a" defer></script>
 </head>
 <body class="inpage" data-page="info" data-info="about">
 
@@ -97,7 +99,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
       <input id="searchInput" type="search" placeholder="Search products on AhmaMart..." aria-label="Search products" autocomplete="off">
       <button class="sbtn" type="button" aria-label="Search" onclick="document.getElementById('searchInput').focus()"></button>
     </div>
-    <div class="hact"><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
   </div>
   <div class="chips" id="chips"></div>
 </header>
@@ -253,10 +255,17 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
       <div class="field"><label>Full name</label><input required name="name"></div>
       <div class="field"><label>Phone number</label><input required name="phone" type="tel" autocomplete="tel" placeholder="03XXXXXXXXX"></div>
       <div class="field"><label>Email address</label><input required name="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
-      <div class="field"><label for="addrCountry">Country</label><input id="addrCountry" value="Pakistan" readonly aria-readonly="true" tabindex="-1" class="ro-field"></div>
-      <div class="field"><label id="addrPickLbl">Province / City / Area <span class="req">*</span></label>
-        <button type="button" class="addr-pick" id="addrPick" aria-haspopup="dialog" aria-labelledby="addrPickLbl addrPickTxt"><span class="ph" id="addrPickTxt">Select province / city / area</span><i aria-hidden="true">›</i></button>
-        <input type="hidden" name="city" id="addrCity"></div>
+      <div class="field"><label id="cntLbl">Country <span class="req">*</span></label>
+        <button type="button" class="addr-pick" id="cntPick" aria-haspopup="dialog" aria-labelledby="cntLbl cntTxt"><span id="cntTxt">Pakistan</span><i aria-hidden="true">›</i></button></div>
+      <div class="field" id="addrPkField"><label id="addrPickLbl">Province / City / Area <span class="req">*</span></label>
+        <button type="button" class="addr-pick" id="addrPick" aria-haspopup="dialog" aria-labelledby="addrPickLbl addrPickTxt"><span class="ph" id="addrPickTxt">Select province / city / area</span><i aria-hidden="true">›</i></button></div>
+      <div id="addrIntl" hidden>
+        <div class="field"><label for="intlState">State / Province / Region</label><input id="intlState" autocomplete="address-level1" maxlength="80"></div>
+        <div class="field"><label for="intlCity">City <span class="req">*</span></label><input id="intlCity" autocomplete="address-level2" maxlength="80"></div>
+        <div class="field"><label for="intlZip">Postal / ZIP code</label><input id="intlZip" autocomplete="postal-code" maxlength="20"></div>
+        <p class="pi-n intl-note">Delivery outside Pakistan: we will contact you on WhatsApp to confirm the shipping charges and delivery time before dispatch. Payment is in advance only.</p>
+      </div>
+      <input type="hidden" name="city" id="addrCity">
       <div class="field"><label>Home address <span class="req">*</span></label><textarea required name="address" placeholder="House no. / building / street / landmark"></textarea></div>
       <button class="btn" type="submit">Continue to payment ›</button>
     </form>
@@ -413,7 +422,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
         <h3 style="font-size:1rem;margin-bottom:10px">Low stock</h3><table><thead><tr><th>Product</th><th>Stock</th></tr></thead><tbody id="lowStockBody"></tbody></table></section>
       <section id="tab-prod" style="display:none">
         <div class="topb"><h2>Products</h2><button class="addp" id="newProdBtn">+ Add product</button></div>
-        <table><thead><tr><th></th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th></th></tr></thead><tbody id="prodBody"></tbody></table>
+        <div class="pa-tools"><div id="prodSummary" class="pa-sum"></div><input type="search" id="prodSearch" class="pa-search" placeholder="Search product name…" aria-label="Search products" autocomplete="off"></div>
+        <div id="prodChips" class="pa-chips" role="group" aria-label="Filter by category"></div>
+        <div id="prodGroups" class="pa-groups"></div>
       </section>
       <section id="tab-cat" style="display:none">
         <h2 style="margin-bottom:16px">Categories</h2>
@@ -564,9 +575,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="app.js?v=20261125c"></script>
-<script defer src="reviews.js?v=20261125c"></script>
-<script defer src="a11y.js?v=20261125c"></script>
+<script defer src="app.js?v=20261126a"></script>
+<script defer src="reviews.js?v=20261126a"></script>
+<script defer src="a11y.js?v=20261126a"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Assalam%20o%20Alaikum%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AMujhe%20aap%20ke%20store%20se%20order%20ke%20baray%20mein%20maloomat%20chahiye.%20Meri%20details%20yeh%20hain%3A%0A%0A%F0%9F%91%A4%20Naam%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20Sheher%20%2F%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20ka%20naam%20ya%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0AMeherbani%20karke%20yeh%20batayen%3A%0A1%29%20Kya%20product%20abhi%20stock%20mein%20hai%3F%0A2%29%20Product%20ki%20price%20aur%20delivery%20charges%0A3%29%20Mere%20sheher%20mein%20delivery%20ka%20waqt%0A4%29%20Payment%20ka%20tareeqa%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMera%20mazeed%20sawal%3A%20%0A%0AJawab%20ka%20intezar%20rahega.%20Shukriya%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="WhatsApp par chat karein">
