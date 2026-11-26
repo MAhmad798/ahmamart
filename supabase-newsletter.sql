@@ -1,11 +1,11 @@
 -- AhmaMart: newsletter subscribers
--- Supabase Dashboard -> SQL Editor -> New query -> yeh poora paste karein -> Run (sirf ek baar).
--- Purane orders/products/categories me koi change nahi hota.
+-- Supabase Dashboard -> SQL Editor -> New query -> paste all of this -> Run (only once).
+-- No changes are made to existing orders/products/categories.
 --
--- Kaise kaam karta hai:
---  * Website ka "Sign me up" form subscribe_newsletter() function call karta hai, jo email is table me save karta hai.
---  * Same email dobara aaye to duplicate nahi banta (naya row nahi, user ko "already subscribed" nahi batate).
---  * Table ko visitors direct read/write nahi kar sakte (list private rehti hai). Sirf admin padh/delete kar sakta hai.
+-- How it works:
+--  * The website's "Sign me up" form calls the subscribe_newsletter() function, which saves the email in this table.
+--  * If the same email comes in again, no duplicate is created (no new row, and the user is not told "already subscribed").
+--  * Visitors cannot read/write the table directly (the list stays private). Only the admin can read/delete.
 
 create table if not exists public.newsletter_subscribers (
   id          bigint generated always as identity primary key,
@@ -13,13 +13,13 @@ create table if not exists public.newsletter_subscribers (
   created_at  timestamptz not null default now()
 );
 
--- ek email sirf ek baar (chhote/bare haroof ka farq nahi)
+-- one email only once (upper/lower case makes no difference)
 create unique index if not exists newsletter_subscribers_email_key
   on public.newsletter_subscribers (lower(email));
 
 alter table public.newsletter_subscribers enable row level security;
 
--- Admin (is_admin() wohi function jo admin login use karta hai) list dekh aur delete kar sakta hai
+-- Admin (is_admin() is the same function the admin login uses) can view and delete the list
 do $$ begin
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='newsletter_subscribers' and policyname='newsletter admin read') then
     create policy "newsletter admin read" on public.newsletter_subscribers for select to authenticated using (public.is_admin());
@@ -34,7 +34,7 @@ end $$;
 
 grant select, delete on public.newsletter_subscribers to authenticated;
 
--- Visitors sirf is function se email jama kara sakte hain
+-- Visitors can add an email only through this function
 create or replace function public.subscribe_newsletter(p_email text)
 returns jsonb
 language plpgsql
@@ -58,7 +58,7 @@ $$;
 revoke all on function public.subscribe_newsletter(text) from public;
 grant execute on function public.subscribe_newsletter(text) to anon, authenticated;
 
--- Supabase ko naya table/function foran dikhane ke liye
+-- Make Supabase pick up the new table/function immediately
 notify pgrst, 'reload schema';
 
 select 'OK - newsletter setup complete' as status,

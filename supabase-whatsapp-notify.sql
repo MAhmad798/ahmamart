@@ -1,19 +1,19 @@
--- AhmaMart: naya order aate hi owner ko WhatsApp notification
--- Supabase Dashboard -> SQL Editor -> New query -> yeh poora paste karein -> Run (sirf ek baar).
--- Dobara chalana safe hai. Orders, products aur baqi data me koi change nahi hota.
+-- AhmaMart: WhatsApp notification to the owner as soon as a new order arrives
+-- Supabase Dashboard -> SQL Editor -> New query -> paste all of this -> Run (only once).
+-- Running it again is safe. No changes are made to orders, products or any other data.
 --
--- Yeh kya karta hai:
---  * orders me ek column wa_notified_at jorta hai (taake har order ka message sirf ek baar jaye).
---  * orders table par ek trigger lagata hai: jaise hi naya order save hota hai, edge function "notify-order" ko order ka code bhejta hai.
---  * Agar notification me koi bhi masla ho (function deploy na ho, internet masla...) to bhi CUSTOMER KA ORDER HAMESHA SAVE HOTA HAI —
---    trigger ki har galti andar hi pakar li jati hai.
+-- What it does:
+--  * Adds a column wa_notified_at to orders (so each order's message is sent only once).
+--  * Adds a trigger on the orders table: as soon as a new order is saved, it sends the order code to the edge function "notify-order".
+--  * Even if something goes wrong with the notification (function not deployed, internet problem...), THE CUSTOMER'S ORDER IS ALWAYS SAVED —
+--    every error in the trigger is caught inside it.
 --
--- Is ke baad WHATSAPP-ORDER-ALERTS.md ke mutabiq function deploy karna zaroori hai.
+-- After this, you must deploy the function as described in WHATSAPP-ORDER-ALERTS.md.
 
 create extension if not exists pg_net with schema extensions;
 
--- column sirf pehli baar banta hai; usi waqt purane (pehle se maujood) orders "notified" mark hote hain,
--- warna kisi purane order par galti se message ja sakta hai. SQL dobara chalane par yeh hissa kuch nahi karta.
+-- the column is created only the first time; at that moment the existing (already present) orders are marked "notified",
+-- otherwise a message could go out for an old order by mistake. Running the SQL again does nothing here.
 do $$
 begin
   if not exists (select 1 from information_schema.columns
@@ -30,7 +30,7 @@ security definer
 set search_path = public, extensions
 as $$
 begin
-  -- code abhi khali ho (insert ke baad set hota ho) to ruk jao; code set hote hi trigger dobara chalega (neeche "update of code")
+  -- if the code is still empty (e.g. it is set after the insert), stop; the trigger runs again as soon as the code is set (see "update of code" below)
   if new.code is null or btrim(new.code::text) = '' then return new; end if;
   if tg_op = 'UPDATE' and old.code is not distinct from new.code then return new; end if;
   begin
@@ -41,7 +41,7 @@ begin
       timeout_milliseconds := 10000
     );
   exception when others then
-    raise warning 'notify_new_order failed: %', sqlerrm;   -- order phir bhi save hoga
+    raise warning 'notify_new_order failed: %', sqlerrm;   -- the order will still be saved
   end;
   return new;
 end;

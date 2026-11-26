@@ -1,34 +1,34 @@
-# Size / Colour order fix — kya karna hai (2 minute)
+# Size / Colour order fix — what to do (2 minutes)
 
-1. **Supabase → SQL Editor → New query** me `supabase-variants.sql` ka poora text paste karke **Run** karein.
-   - Dobara chalana bilkul safe hai, purana data/orders delete nahi hote.
-   - Aakhir me result me `OK - variants setup complete (v2)` aur `table_ready / order_function_ready / policies_ready = true` aana chahiye.
-   - `products_with_stock_mismatch` ka number `0` hona chahiye.
-2. Naye website files hosting par upload karein (pura zip).
-3. Admin → Dashboard → **Run connection check** dabayen. "Order with size / colour (place_order_v3)" ✔ hona chahiye.
-4. Ek test order karein: size + colour chunein → Cash on Delivery → order place. Variant ka stock 1 kam hona chahiye.
+1. In **Supabase → SQL Editor → New query**, paste the full text of `supabase-variants.sql` and click **Run**.
+   - Running it again is completely safe; old data and orders are not deleted.
+   - At the end, the result should show `OK - variants setup complete (v2)` and `table_ready / order_function_ready / policies_ready = true`.
+   - The number for `products_with_stock_mismatch` should be `0`.
+2. Upload the new website files to your hosting (the whole zip).
+3. Go to Admin → Dashboard and click **Run connection check**. "Order with size / colour (place_order_v3)" should show ✔.
+4. Place a test order: choose size + colour → Cash on Delivery → place the order. The variant's stock should go down by 1.
 
-## Kya theek hua
-- Variants wale order fail hone ki wajah: product ka total stock (`products.stock`) aur variants ke stock me farq hone par purana function
-  ghalat "out of stock" de deta tha. Ab order se pehle yeh farq khud theek ho jata hai, aur SQL run karte hi sab products sync ho jate hain.
-- Order function mazboot: same variant do baar, ghalat input, aur fail hone par variant stock wapas — sab handle.
-- Website me **safety net**: agar database function kisi wajah se kaam na kare, customer ka order phir bhi save hota hai aur
-  address note me `[VARIANT ORDER - Hoodie (M / Red) x1 - reduce variant stock manually]` likha hota hai.
-- Product page par professional Size chips + Colour swatches, adhoori selection par saaf highlight, cart/receipt/WhatsApp me variant ka naam.
-
----
-# Admin Orders — poori details (naya)
-
-1. Supabase SQL Editor me `supabase-order-details.sql` Run karein (safe, dobara bhi chala sakte hain). Is se naye orders ke saath email, city,
-   payment ka tareeqa (JazzCash/EasyPaisa...), TID aur screenshot bhi save hota hai.
-2. Naya zip upload karein. Admin → **Orders** me ab har order ka card dikhta hai: customer (naam, phone, email, address, city),
-   payment (COD / advance, TID, screenshot), har product (tasveer, naam, size/colour, price, qty, total), status, WhatsApp button,
-   "Copy order details", search aur status filter. Naye orders har 1 minute me khud aa jate hain (Refresh button bhi hai).
+## What was fixed
+- Why orders with variants failed: when the product's total stock (`products.stock`) and the variants' stock did not match, the old function
+  wrongly returned "out of stock". Now this mismatch is corrected automatically before an order is placed, and all products are synced as soon as you run the SQL.
+- The order function is more robust: the same variant twice, invalid input, and restoring the variant stock when an order fails are all handled.
+- **Safety net** in the website: if the database function fails for any reason, the customer's order is still saved and
+  the address note says `[VARIANT ORDER - Hoodie (M / Red) x1 - reduce variant stock manually]`.
+- Professional Size chips + Colour swatches on the product page, a clear highlight when the selection is incomplete, and the variant name in the cart/receipt/WhatsApp.
 
 ---
-# Search + photo slider (naya)
-- **Search:** agar customer ka search kiya hua product na ho lekin us se milti-julti category ho (jaise "jutay"/"shoes" -> Footwear, "ghari" -> Watches,
-  "kapray" -> Clothing), to wo category (tile) aur uske products dikhte hain. Product mil jaye tab bhi upar "Related categories" dikhti hain.
-  Kuch bhi na mile to saari categories dikhti hain. Koi SQL nahi chalani.
-- **Photos:** jis product ki 2+ tasveerain hon, uski card par har 3 second baad agli tasveer khud aati hai (loop me, dots ke saath).
-  Product page par bhi tasveerain khud badalti hain, arrows/swipe/thumbnail se bhi badal sakte hain.
+# Admin Orders — full details (new)
+
+1. Run `supabase-order-details.sql` in the Supabase SQL Editor (safe, you can run it again). With this, new orders also save the email, city,
+   payment method (JazzCash/EasyPaisa...), TID and screenshot.
+2. Upload the new zip. In Admin → **Orders** you will now see a card for every order: customer (name, phone, email, address, city),
+   payment (COD / advance, TID, screenshot), every product (picture, name, size/colour, price, qty, total), status, WhatsApp button,
+   "Copy order details", search and status filter. New orders appear automatically every 1 minute (there is also a Refresh button).
+
+---
+# Search + photo slider (new)
+- **Search:** if the product the customer searched for does not exist but a similar category does (for example "shoes" -> Footwear, "watch" -> Watches,
+  "clothes" -> Clothing), that category (tile) and its products are shown. Even when a product is found, "Related categories" are shown at the top.
+  If nothing matches, all categories are shown. No SQL needs to be run.
+- **Photos:** for a product with 2 or more pictures, its card automatically shows the next picture every 3 seconds (in a loop, with dots).
+  On the product page the pictures also change automatically, and you can switch them with arrows, swipe or thumbnails too.

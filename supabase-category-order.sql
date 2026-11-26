@@ -1,6 +1,6 @@
 -- AhmaMart: category ORDER + sub-categories + category picture (Admin drag & drop / move up-down)
--- Supabase Dashboard -> SQL Editor -> New query -> yeh poora paste karein -> Run (sirf ek baar).
--- Dobara chalane se bhi koi nuqsan nahi (sab "if not exists" hai). Purane categories/products wese hi rehte hain.
+-- Supabase Dashboard -> SQL Editor -> New query -> paste all of this -> Run (only once).
+-- Running it again is also harmless (everything uses "if not exists"). Existing categories/products stay as they are.
 
 -- 1) Sub-category column
 alter table public.categories
@@ -14,7 +14,7 @@ alter table public.categories
 alter table public.categories
   add column if not exists sort_order integer not null default 0;
 
--- 4) Purane categories ko unke maujooda order (id) ke hisaab se number do (har parent ke andar 10, 20, 30...)
+-- 4) Number the existing categories by their current order (id) (10, 20, 30... within each parent)
 update public.categories c
 set sort_order = s.rn * 10
 from (
@@ -24,9 +24,9 @@ from (
 where c.id = s.id
   and c.sort_order = 0;
 
--- 5) Tez loading ke liye index
+-- 5) Index for faster loading
 create index if not exists categories_parent_id_idx on public.categories(parent_id);
 create index if not exists categories_sort_order_idx on public.categories(parent_id, sort_order);
 
--- 6) Supabase ko naya column foran dikhane ke liye
+-- 6) Make Supabase pick up the new column immediately
 notify pgrst, 'reload schema';

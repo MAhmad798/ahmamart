@@ -1,23 +1,23 @@
 -- AhmaMart: product variants (Size / Colour / ...) with variant-wise stock  — VERSION 2 (fixed + hardened)
--- Supabase Dashboard -> SQL Editor -> New query -> yeh poora paste karein -> Run.
--- Yeh file dobara dobara chalana bilkul safe hai (purana data/orders delete nahi hote). Purani version ke upar bhi chala dein.
--- Jis product me variants nahi, woh pehle ki tarah chalta hai.
+-- Supabase Dashboard -> SQL Editor -> New query -> paste all of this -> Run.
+-- Running this file again and again is completely safe (existing data/orders are not deleted). You can also run it over the old version.
+-- A product without variants works as before.
 --
--- Kaise kaam karta hai:
---  * Har variant ek row hai, jaise Size=M + Colour=Red, apne alag stock ke saath.
---  * Product ka total stock (products.stock) automatically variants ke stock ka jama (sum) ban jata hai.
---  * Order place_order_v3() se hota hai: variant ka stock server par kam hota hai (stock khatam ho to order reject),
---    phir purana place_order()/place_order_v2() product ka stock kam karta hai. Order me item ka naam
---    "Product (M / Red)" ban kar save hota hai, to admin, receipt aur WhatsApp sab me nazar aata hai.
---  * place_order_v3 purane place_order() par chalta hai, is liye pehle wali SQL files (orders/payment) maujood honi chahiyen.
+-- How it works:
+--  * Each variant is one row, e.g. Size=M + Colour=Red, with its own separate stock.
+--  * A product's total stock (products.stock) automatically becomes the sum of its variants' stock.
+--  * The order is placed via place_order_v3(): the variant's stock is reduced on the server (if stock runs out, the order is rejected),
+--    then the old place_order()/place_order_v2() reduces the product's stock. The item name is saved in the order as
+--    "Product (M / Red)", so it shows up in the admin, receipt and WhatsApp.
+--  * place_order_v3 runs on top of the old place_order(), so the earlier SQL files (orders/payment) must already be in place.
 --
--- Version 2 me kya theek hua:
---  * products.stock aur variants ke stock me farq (drift) ho to order ab "out of stock" ghalat reject nahi hota —
---    function order se pehle product ka stock variants ke mutabiq theek kar leta hai.
---  * Aik hi variant cart me do baar aaye to jama ho jata hai; variants hamesha aik tarteeb se lock hote hain (deadlock nahi).
---  * Ghalat/khali/ajeeb input par saaf error (BAD_ITEM, VARIANT_NOT_FOUND ...) milta hai, crash nahi.
---  * Agar order kisi wajah se fail ho to variant ka stock bhi saath hi wapas ho jata hai (aik transaction).
---  * Run karte hi purane products ka stock variants ke jama se barabar kar diya jata hai (neeche step 5).
+-- What was fixed in Version 2:
+--  * If products.stock and the variants' stock differ (drift), an order is no longer wrongly rejected as "out of stock" —
+--    before the order, the function corrects the product's stock to match its variants.
+--  * If the same variant appears twice in the cart, the quantities are added up; variants are always locked in the same order (no deadlock).
+--  * Wrong/empty/odd input gives a clear error (BAD_ITEM, VARIANT_NOT_FOUND ...) instead of a crash.
+--  * If the order fails for any reason, the variant's stock is restored along with it (one transaction).
+--  * As soon as this runs, the stock of existing products is set equal to the sum of their variants (step 5 below).
 
 -- 1) variants table
 create table if not exists public.product_variants (
@@ -31,10 +31,10 @@ create table if not exists public.product_variants (
 );
 
 create index if not exists product_variants_product_idx on public.product_variants (product_id);
--- ek product me same combination do baar nahi
+-- the same combination cannot appear twice in one product
 create unique index if not exists product_variants_unique_combo on public.product_variants (product_id, options);
 
--- 2) access: sab variants dekh sakte hain, sirf admin badal sakta hai
+-- 2) access: everyone can view variants, only the admin can change them
 alter table public.product_variants enable row level security;
 
 do $$ begin
@@ -64,7 +64,7 @@ end $$;
 grant select on public.product_variants to anon, authenticated;
 grant insert, update, delete on public.product_variants to authenticated;
 
--- 3) products.stock = variants ke stock ka jama (jab product me variants hon)
+-- 3) products.stock = sum of the variants' stock (when the product has variants)
 create or replace function public.sync_product_stock()
 returns trigger
 language plpgsql
@@ -73,7 +73,7 @@ set search_path = public
 as $$
 declare pid bigint;
 begin
-  -- order ke dauran place_order_v3 yeh flag lagata hai (product ka stock purana place_order() kam karta hai)
+  -- during an order, place_order_v3 sets this flag (the product's stock is reduced by the old place_order())
   if coalesce(current_setting('app.skip_variant_sync', true), '') = '1' then
     return null;
   end if;
@@ -92,7 +92,7 @@ create trigger product_variants_sync_stock
   after insert or update or delete on public.product_variants
   for each row execute function public.sync_product_stock();
 
--- 4) "M / Red" jaisa label
+-- 4) a label like "M / Red"
 create or replace function public.variant_label(p_options jsonb)
 returns text
 language sql
@@ -102,7 +102,7 @@ as $$
     from jsonb_array_elements(coalesce(p_options, '[]'::jsonb)) with ordinality as t(e, ord)
 $$;
 
--- 5) abhi ke saare products ka stock variants ke mutabiq theek kar do (purana farq/drift saaf)
+-- 5) set the stock of all current products to match their variants (clears old mismatch/drift)
 update public.products p
    set stock = v.total
   from (select product_id, coalesce(sum(stock), 0)::integer as total
@@ -110,8 +110,8 @@ update public.products p
  where p.id = v.product_id and p.stock is distinct from v.total;
 
 -- 6) order placement with variants
---    items: [{"product_id":1,"variant_id":7,"qty":2}, {"product_id":3,"qty":1}]   (variant_id sirf variants wale product ke liye)
---    Errors (customer ko friendly message dikhta hai):
+--    items: [{"product_id":1,"variant_id":7,"qty":2}, {"product_id":3,"qty":1}]   (variant_id only for products that have variants)
+--    Errors (the customer sees a friendly message):
 --      EMPTY_CART, BAD_ITEM, BAD_PAYMENT_METHOD, VARIANT_REQUIRED, VARIANT_NOT_FOUND, OUT_OF_STOCK, COD_LIMIT
 create or replace function public.place_order_v3(
   p_name text,
@@ -132,8 +132,8 @@ declare
   it        jsonb;
   r         record;
   line      jsonb;
-  lines     jsonb := '[]'::jsonb;   -- har variant/product line: product_id, variant_id, qty, label
-  agg       jsonb;                  -- product-wise jama: purane place_order ko yehi diya jata hai
+  lines     jsonb := '[]'::jsonb;   -- each variant/product line: product_id, variant_id, qty, label
+  agg       jsonb;                  -- summed per product: this is what is given to the old place_order
   vrow      public.product_variants%rowtype;
   vtxt      text;
   v         jsonb;
@@ -153,7 +153,7 @@ begin
     raise exception 'EMPTY_CART';
   end if;
 
-  -- input check: product_id / qty poore (positive) number hon, variant_id khali ya number
+  -- input check: product_id / qty must be whole (positive) numbers, variant_id empty or a number
   for it in select value from jsonb_array_elements(p_items) loop
     if jsonb_typeof(it) <> 'object'
        or coalesce(it->>'product_id', '') !~ '^[0-9]{1,15}$'
@@ -164,11 +164,11 @@ begin
     end if;
   end loop;
 
-  -- variant ka stock kam karte waqt products.stock trigger se dobara na badle
+  -- so the products.stock trigger does not change it again while the variant's stock is being reduced
   perform set_config('app.skip_variant_sync', '1', true);
 
-  -- 1) har variant line: variant ka stock server par kam karo (agar kam na ho to order reject).
-  --    Same variant do baar ho to jama; hamesha (product, variant) ki tarteeb se lock => deadlock nahi.
+  -- 1) for each variant line: reduce the variant's stock on the server (if there is not enough, reject the order).
+  --    If the same variant appears twice, add them up; always lock in (product, variant) order => no deadlock.
   for r in
     select (e->>'product_id')::bigint                    as pid,
            nullif(e->>'variant_id', '')::bigint          as vid,
@@ -199,14 +199,14 @@ begin
     lines := lines || jsonb_build_array(line);
   end loop;
 
-  -- 2) purane place_order ko product-wise jama kiya hua cart do (wohi product ka stock kam karta hai)
+  -- 2) give the old place_order a cart summed up per product (it is what reduces the product's stock)
   select coalesce(jsonb_agg(jsonb_build_object('product_id', s.product_id, 'qty', s.q) order by s.product_id), '[]'::jsonb)
     into agg
     from (select (l->>'product_id')::bigint as product_id, sum((l->>'qty')::integer) as q
             from jsonb_array_elements(lines) l group by 1) s;
 
-  -- variants wale product ka stock pehle variants ke jama (order se pehle wala) par la do, taake purane
-  -- place_order ka stock-check kabhi galat "out of stock" na de (products.stock aur variants me farq ho to bhi).
+  -- first set the stock of a product with variants to the variants' sum (the pre-order value), so the old
+  -- place_order stock check never gives a wrong "out of stock" (even if products.stock and the variants differ).
   for it in select value from jsonb_array_elements(agg) loop
     pid := (it->>'product_id')::bigint;
     if exists (select 1 from public.product_variants x where x.product_id = pid) then
@@ -229,7 +229,7 @@ begin
   end if;
   v := vtxt::jsonb;
 
-  -- 3) products.stock ko variants ke jama ke barabar rakho (variants wale products)
+  -- 3) keep products.stock equal to the variants' sum (for products with variants)
   for it in select value from jsonb_array_elements(agg) loop
     pid := (it->>'product_id')::bigint;
     if exists (select 1 from public.product_variants x where x.product_id = pid) then
@@ -239,7 +239,7 @@ begin
     end if;
   end loop;
 
-  -- 4) order ke items me variant ka naam jorho: "Product (M / Red)"
+  -- 4) add the variant name to the order items: "Product (M / Red)"
   for line in select value from jsonb_array_elements(lines) loop
     pid := (line->>'product_id')::bigint;
     select e into base from jsonb_array_elements(coalesce(v->'items', '[]'::jsonb)) e
@@ -280,10 +280,10 @@ $$;
 revoke all on function public.place_order_v3(text, text, text, text, text, jsonb, text) from public;
 grant execute on function public.place_order_v3(text, text, text, text, text, jsonb, text) to anon, authenticated;
 
--- Supabase ko naya table/function foran dikhane ke liye
+-- Make Supabase pick up the new table/function immediately
 notify pgrst, 'reload schema';
 
--- Natija: neeche "status" me OK aur teeno cheezen true dikhni chahiyen. Agar error ya false aaye to mujhe woh message bhej dein.
+-- Result: below, "status" should show OK and all three things should be true. If you get an error or false, send me that message.
 select 'OK - variants setup complete (v2)' as status,
        to_regclass('public.product_variants') is not null as table_ready,
        to_regprocedure('public.place_order_v3(text,text,text,text,text,jsonb,text)') is not null as order_function_ready,

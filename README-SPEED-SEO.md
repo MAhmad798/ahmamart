@@ -1,51 +1,50 @@
 # AhmaMart — Speed + SEO update (21 Nov 2026)
 
-## Upload kaise karein
-Pura zip hosting par upload karein (purani files replace). Phir Google Search Console me `https://ahmamart.com/sitemap.xml` submit karein.
+## How to upload
+Upload the whole zip to your hosting (replace the old files). Then submit `https://ahmamart.com/sitemap.xml` in Google Search Console.
 
-## Aage koi file badlen to
-- `style.css` / `app.js` badalne par HTML me `?v=20261122d` ka number badal dein (taake browser nayi file le).
-- `_source/` folder me app.js / style.css / login.js ki **parhne wali (non-minified)** copy hai. Edit wahin karein, phir minify karein:
-  `esbuild _source/app.js --minify --outfile=app.js` (style.css aur login.js ke liye bhi yehi).
-- Domain badalna ho to `ahmamart.com` ko dhoondh kar badlein: robots.txt, sitemap.xml, har HTML page, app.js (`SITE_URL`), api/sitemap-products.js.
+## If you change any file later
+- When you change `style.css` / `app.js`, update the number `?v=20261122d` in the HTML (so that browsers fetch the new file).
+- The `_source/` folder holds the **readable (non-minified)** copies of app.js / style.css / login.js. Edit them there, then minify:
+  `esbuild _source/app.js --minify --outfile=app.js` (do the same for style.css and login.js).
+- To change the domain, find and replace `ahmamart.com` in: robots.txt, sitemap.xml, every HTML page, app.js (`SITE_URL`), api/sitemap-products.js.
 
-## Kya badla
-Speed: scripts defer, store data head se hi load shuru, Google Analytics / Meta Pixel page load ke baad, chhoti WebP images, minified CSS/JS,
-service worker se repeat visit tez, cache files (vercel.json / _headers / .htaccess).
-SEO: har page par canonical + Open Graph + schema, har product/category ka apna title/description/schema (Product, price, stock),
-home par H1 + text, robots.txt, sitemap.xml, api/sitemap-products.js (sirf Vercel par chalta hai; products ki sitemap `/sitemap-products.xml`).
+## What changed
+Speed: scripts are deferred, store data starts loading from the head, Google Analytics / Meta Pixel load after the page has loaded, small WebP images, minified CSS/JS,
+faster repeat visits through a service worker, cache files (vercel.json / _headers / .htaccess).
+SEO: canonical + Open Graph + schema on every page, its own title/description/schema (Product, price, stock) for every product/category, H1 + text on the home page, robots.txt, sitemap.xml, api/sitemap-products.js (works on Vercel only; the products sitemap is `/sitemap-products.xml`).
 
 ## Categories (22 Nov 2026)
-- Admin -> Categories: list me sirf **main categories** dikhti hain. Kisi par tap karein (naam ya ▸ arrow) to uski sub-categories slide hokar khulti hain, dobara tap par band.
-  "Expand all / Collapse all" buttons upar hain. Naya sub-category add karne ya drag/move karne par uska parent khud khul jata hai.
+- Admin -> Categories: the list shows only the **main categories**. Tap one (its name or the ▸ arrow) and its sub-categories slide open; tap again to close.
+  "Expand all / Collapse all" buttons are at the top. When you add a new sub-category, or drag/move one, its parent opens automatically.
 
 ## Order tracking fix (22 Nov 2026)
-- "My orders" / "Track order": phone number ab kisi bhi style me chalta hai (03001234567, 0300-1234567, +92 300 1234567, 3001234567).
-- Supabase me `supabase-track-orders.sql` ek baar Run karein (yeh `list_customer_orders` aur `track_order` ko last-10-digits matching ke saath dobara banati hai).
-- SQL se pehle bhi website number ke kai spellings try karke orders dhoondti hai, lekin pakka hal SQL hai.
+- "My orders" / "Track order": the phone number now works in any format (03001234567, 0300-1234567, +92 300 1234567, 3001234567).
+- Run `supabase-track-orders.sql` once in Supabase (it recreates `list_customer_orders` and `track_order` with last-10-digits matching).
+- Even before you run the SQL, the website tries several spellings of the number to find orders, but the SQL is the reliable fix.
 
 ## Accessibility (22 Nov 2026)
-- Nayi file `a11y.js` (har page par load hoti hai). Yeh keyboard aur screen-reader support deti hai:
-  "Skip to main content" link, har popup (cart, checkout, track order, my orders, product detail...) par `role="dialog"` + `aria-modal` + naam,
-  popup khulne par focus andar jata hai, Tab popup ke andar hi ghoomta hai, Esc se band hota hai, band hone par focus wapas usi button par,
-  band cart drawer ab Tab me nahi aata, message areas (checkout/payment/track/newsletter) screen reader ko announce hote hain,
-  product cards Tab + Enter/Space se khulte hain, cart count badalne par "Cart: N items" announce hota hai.
-- app.js me koi tabdeeli nahi hui. a11y.js purane "on" class ko dekhti hai jo app.js popup kholne/band karne ke liye pehle se lagata hai.
-- Naye popup ka markup `.modal-overlay > .modal` rakhein to wo khud-ba-khud is me shamil ho jayega.
-- style.css ke aakhir me skip-link aur focus-ring ki styling add hui. Version `?v=20261122e` kar diya gaya hai.
+- New file `a11y.js` (loaded on every page). It provides keyboard and screen-reader support:
+  a "Skip to main content" link, `role="dialog"` + `aria-modal` + a name on every popup (cart, checkout, track order, my orders, product detail...),
+  focus moves inside when a popup opens, Tab cycles only within the popup, Esc closes it, focus returns to the same button when it closes,
+  the closed cart drawer no longer receives Tab focus, message areas (checkout/payment/track/newsletter) are announced to screen readers,
+  product cards open with Tab + Enter/Space, and "Cart: N items" is announced when the cart count changes.
+- No changes were made to app.js. a11y.js watches the existing "on" class that app.js already adds to open/close popups.
+- If you keep the markup of a new popup as `.modal-overlay > .modal`, it will be included automatically.
+- Skip-link and focus-ring styling was added at the end of style.css. The version has been changed to `?v=20261122e`.
 
 ## Product reviews & ratings (23 Nov 2026)
-**Pehle ek baar karein:** Supabase -> SQL Editor -> `supabase-reviews.sql` paste karke Run. (Jab tak yeh nahi chalayenge, website par reviews ka koi box nazar nahi aayega, aur baaki site normal chalegi.)
-- Product page: title ke neeche stars + "4.7 · 3 reviews", neeche "Customer reviews" section (average, 5-1 star bars, reviews ki list, "Write a review" form).
-- Product cards (home, category, "You may also like"): chhote stars + count, sirf un products par jin ke reviews hain.
-- Google: approved reviews hon to product schema me aggregateRating + review khud add ho jata hai.
-- Naya review pehle "Pending" hota hai. Admin panel -> **Reviews** tab -> Approve / Reject / Delete. Pending ka lal badge dikhta hai.
-- Foran dikhana ho (bina approve): `supabase-reviews.sql` me `v_status` ko `'approved'` kar ke dobara Run karein.
-- Spam se bachao: chhupa honeypot field, ek connection se 1 ghante me max 5 reviews, same review dobara nahi, web links wale reject.
-- Files: `reviews.js` (naya), `supabase-reviews.sql` (naya), style.css ke aakhir me styling. app.js me koi tabdeeli nahi.
+**Do this once first:** Supabase -> SQL Editor -> paste `supabase-reviews.sql` and Run. (Until you run it, no review box will appear on the website, and the rest of the site will keep working normally.)
+- Product page: stars + "4.7 · 3 reviews" under the title, and below it a "Customer reviews" section (average, 5-1 star bars, list of reviews, "Write a review" form).
+- Product cards (home, category, "You may also like"): small stars + count, only on products that have reviews.
+- Google: if there are approved reviews, aggregateRating + review are added to the product schema automatically.
+- A new review is "Pending" at first. Admin panel -> **Reviews** tab -> Approve / Reject / Delete. A red badge shows the number of pending reviews.
+- To show reviews immediately (without approval): change `v_status` to `'approved'` in `supabase-reviews.sql` and Run it again.
+- Spam protection: a hidden honeypot field, a maximum of 5 reviews per hour from one connection, the same review cannot be submitted twice, and reviews containing web links are rejected.
+- Files: `reviews.js` (new), `supabase-reviews.sql` (new), styling at the end of style.css. No changes to app.js.
 
 ## Admin Orders fix + mobile (23 Nov 2026)
-- Wajah: sirf `index.html` me naya Orders markup tha; baaki 9 pages (product, category, about, contact, faq, policies...) me purana Orders table tha. Admin in pages se kholne par naye order cards purane table ke andar ghus kar kharab dikhte the. Ab sab pages me wahi naya markup hai.
-- Admin tables (Products, Customers, Subscribers, order ke products) me header aur rows ki columns ab seedhi aati hain; chaura table mobile par apne andar side-ways scroll hoti hai.
-- Mobile/tablet: admin ka menu upar ek line me (side-ways scroll, scroll par chipka rehta hai), order cards poori screen me, buttons bade, filters ek line me scroll.
-- Note: agar aap admin me naya section/field dalen to usay sab HTML pages me ek jaisa rakhein (ya sirf index.html se admin kholein).
+- Cause: only `index.html` had the new Orders markup; the other 9 pages (product, category, about, contact, faq, policies...) still had the old Orders table. When the admin was opened from those pages, the new order cards got squeezed into the old table and looked broken. Now all pages have the same new markup.
+- Admin tables (Products, Customers, Subscribers, the products inside an order): the header and rows now line up with their columns; a wide table scrolls sideways inside itself on mobile.
+- Mobile/tablet: the admin menu is a single line at the top (scrolls sideways, stays fixed while scrolling), order cards take the full screen width, buttons are bigger, and filters sit on one scrolling line.
+- Note: if you add a new section/field in the admin, keep it identical on all HTML pages (or open the admin only from index.html).

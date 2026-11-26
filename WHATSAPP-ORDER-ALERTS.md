@@ -1,11 +1,11 @@
-# AhmaMart — Naye order par WhatsApp notification
+# AhmaMart — WhatsApp notification for new orders
 
-Jab bhi koi customer website par order karega, aap ke WhatsApp number (default: **0329 6063123**, jo site me hai) par foran ek message aayega:
+Whenever a customer places an order on the website, a message will arrive instantly on your WhatsApp number (default: **0329 6063123**, which is set in the site):
 
 ```
-🛒 Naya order — AhmaMart
+🛒 New order — AhmaMart
 Code: ABC123
-Waqt: 23 Nov 2026, 3:40 am
+Time: 23 Nov 2026, 3:40 am
 
 👤 Ali Khan
 📞 0300 1234567  (https://wa.me/923001234567)
@@ -18,65 +18,65 @@ Items:
 Payment: 💵 Cash on Delivery
 ```
 
-Yeh **server se** hota hai, customer ke browser par nahi chalta — is liye customer tab band kar de tab bhi message aata hai.
-Website ki koi file (app.js wagera) badalni nahi padi. Teen cheezen hain: ek SQL, ek function, aur WhatsApp ka ek tareeqa.
+This happens **on the server**, not in the customer's browser — so the message arrives even if the customer closes the tab.
+No website file (app.js etc.) had to be changed. There are three things: one SQL, one function, and one WhatsApp method.
 
 ---
 
-## Step 1 — SQL (2 minute)
-Supabase → **SQL Editor** → `supabase-whatsapp-notify.sql` paste karke **Run**.
-(Natija me `trigger_ready = true` aur `pg_net_ready = true` aana chahiye.)
+## Step 1 — SQL (2 minutes)
+Supabase → **SQL Editor** → paste `supabase-whatsapp-notify.sql` and click **Run**.
+(The result should show `trigger_ready = true` and `pg_net_ready = true`.)
 
-## Step 2 — WhatsApp ka tareeqa chunein
+## Step 2 — Choose a WhatsApp method
 
-### Tareeqa A — CallMeBot (free, sab se aasan, sirf apne number par) ✅ shuru ke liye yehi
-CallMeBot ek free third-party service hai jo aap ko aap ke apne number par message bhejti hai. (Official WhatsApp service nahi hai, is liye serious/bare volume ke liye Tareeqa B behtar hai.)
+### Method A — CallMeBot (free, easiest, works only for your own number) ✅ use this to start
+CallMeBot is a free third-party service that sends messages to your own number. (It is not an official WhatsApp service, so for serious or high-volume use Method B is better.)
 
-1. https://www.callmebot.com/blog/free-api-whatsapp-messages/ kholein — wahan CallMeBot ka **abhi ka WhatsApp number** likha hota hai (yeh number kabhi kabhi badalta hai). Usay phone me contact save karein.
-2. Aap ke us WhatsApp number se (jis par alerts chahiye) us contact ko yeh message bhejein:
+1. Open https://www.callmebot.com/blog/free-api-whatsapp-messages/ — it lists CallMeBot's **current WhatsApp number** (this number changes from time to time). Save it as a contact on your phone.
+2. From the WhatsApp number where you want the alerts, send this message to that contact:
    `I allow callmebot to send me messages`
-3. Jawab me aap ko ek **API key** milegi (2 minute tak na aaye to 24 ghante baad dobara try karein).
+3. In reply you will receive an **API key** (if it does not arrive within 2 minutes, try again after 24 hours).
 
-### Tareeqa B — Official WhatsApp Cloud API (Meta)
-Business account, token aur ek approved **template** chahiye (kyun ke business pehla message sirf template se bhej sakta hai).
-1. Meta for Developers → WhatsApp → API Setup se **Phone number ID** aur (permanent) **access token** lein.
-2. Message Templates me ek template banayen, jis ki body me sirf `{{1}}` ho (jaise: `Naya order: {{1}}`), category Utility. Approve hone ka intezar karein.
-3. Neeche secrets me `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_TEMPLATE` set karein.
+### Method B — Official WhatsApp Cloud API (Meta)
+You need a business account, a token and an approved **template** (because a business can send the first message only with a template).
+1. From Meta for Developers → WhatsApp → API Setup, get the **Phone number ID** and a (permanent) **access token**.
+2. In Message Templates, create a template whose body contains only `{{1}}` (for example: `New order: {{1}}`), with the category Utility. Wait for it to be approved.
+3. Set `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` and `WHATSAPP_TEMPLATE` in the secrets below.
 
-## Step 3 — Function deploy karna
-Supabase CLI se (jaise PAYMENTS-SETUP.md me hai), project link karke:
+## Step 3 — Deploy the function
+Using the Supabase CLI (as in PAYMENTS-SETUP.md), after linking the project:
 
 ```
-supabase secrets set CALLMEBOT_APIKEY=aap_ki_api_key NOTIFY_SECRET=koi_lamba_random_lafz
+supabase secrets set CALLMEBOT_APIKEY=your_api_key NOTIFY_SECRET=some_long_random_word
 supabase functions deploy notify-order --no-verify-jwt
 ```
 
-(`--no-verify-jwt` zaroori hai kyun ke database trigger login ke baghair call karta hai.)
+(`--no-verify-jwt` is required because the database trigger calls the function without logging in.)
 
-Tareeqa B ke liye `CALLMEBOT_APIKEY` ki jagah:
+For Method B, use this instead of `CALLMEBOT_APIKEY`:
 ```
-supabase secrets set WHATSAPP_TOKEN=xxxx WHATSAPP_PHONE_ID=xxxx WHATSAPP_TEMPLATE=aap_ka_template_naam
+supabase secrets set WHATSAPP_TOKEN=xxxx WHATSAPP_PHONE_ID=xxxx WHATSAPP_TEMPLATE=your_template_name
 ```
 
-Alert kisi aur number par chahiye ho to `NOTIFY_TO=923001234567` (country code ke saath, + ke baghair) set karein. Default aap ka site wala number hai.
-(CallMeBot me wohi number hona chahiye jis ne Step 2 me key li thi.)
+If you want the alert on a different number, set `NOTIFY_TO=923001234567` (with the country code, without the +). The default is the number that is set in your site.
+(With CallMeBot, it must be the same number that got the key in Step 2.)
 
-> CLI nahi chalani? Supabase Dashboard → **Edge Functions** → *Deploy a new function* → naam `notify-order` → `supabase/functions/notify-order/index.ts` ka code paste karein → **Verify JWT band** karein. Secrets: Edge Functions → *Secrets*.
+> Don't want to use the CLI? Supabase Dashboard → **Edge Functions** → *Deploy a new function* → name it `notify-order` → paste the code from `supabase/functions/notify-order/index.ts` → turn **Verify JWT off**. Secrets: Edge Functions → *Secrets*.
 
 ## Step 4 — Test
-Browser me yeh link kholein (apna project aur `NOTIFY_SECRET` daal kar):
+Open this link in a browser (put in your own project and `NOTIFY_SECRET`):
 ```
-https://wfdedrzkqtndnqulvpos.supabase.co/functions/v1/notify-order?test=aap_ka_NOTIFY_SECRET
+https://wfdedrzkqtndnqulvpos.supabase.co/functions/v1/notify-order?test=your_NOTIFY_SECRET
 ```
-WhatsApp par "✅ AhmaMart: WhatsApp order alerts theek chal rahe hain." aana chahiye. Phir ek chhota asli test order karke dekh lein.
+You should receive "✅ AhmaMart: WhatsApp order alerts are working." on WhatsApp. Then place one small real test order to check.
 
-## Agar message na aaye
-- Supabase → Edge Functions → `notify-order` → **Logs**: `SEND FAILED` ke saath wajah likhi hoti hai (galat API key, galat number, template approve nahi...).
-- Order Supabase → Table editor → `orders` me `wa_notified_at` khali hai to message bheja nahi gaya (galti ki surat me khud khali kar diya jata hai). Bhar jaye to bhej diya gaya.
-- Order phir bhi hamesha save hota hai — notification ki galti se customer ka order kabhi nahi rukta.
+## If the message does not arrive
+- Supabase → Edge Functions → `notify-order` → **Logs**: next to `SEND FAILED` the reason is written (wrong API key, wrong number, template not approved...).
+- In Supabase → Table editor → `orders`, if `wa_notified_at` is empty, the message was not sent (if an error happens, it is cleared automatically). If it is filled in, the message was sent.
+- The order is still always saved — a notification error never blocks a customer's order.
 
-## Zaroori baatein
-- Message order save hone ke **~4 second baad** jata hai (taake TID/screenshot/email bhi shamil ho sakein). Badalna ho to secret `NOTIFY_DELAY_MS`.
-- **Online (PayFast)** orders par message order banate hi aata hai, payment status `unpaid` ke saath — "paid" ka confirm webhook baad me karta hai, uska alag message nahi aata.
-- Sirf **naye** orders par message aata hai (SQL chalate waqt purane orders "notified" mark ho jate hain).
-- Function sirf order ka code leti hai aur har order sirf ek baar message bhejti hai, is liye koi bahar se is link ko bar bar chala kar aap ko spam nahi kar sakta.
+## Important points
+- The message is sent **about 4 seconds after** the order is saved (so that the TID/screenshot/email can be included too). To change this, use the secret `NOTIFY_DELAY_MS`.
+- For **Online (PayFast)** orders, the message arrives as soon as the order is created, with payment status `unpaid` — the webhook confirms "paid" later, and no separate message is sent for that.
+- Messages are sent only for **new** orders (when you run the SQL, old orders are marked "notified").
+- The function takes only the order code and sends a message only once per order, so nobody from outside can spam you by opening this link again and again.

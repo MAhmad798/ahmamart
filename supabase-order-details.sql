@@ -1,20 +1,20 @@
--- AhmaMart: order ki poori details (email, city, payment ka tareeqa, TID, screenshot) orders table me save karna
--- Supabase Dashboard -> SQL Editor -> New query -> yeh poora paste karein -> Run.
--- Dobara chalana safe hai. Purane orders/products me koi change nahi hota.
+-- AhmaMart: save the full order details (email, city, payment method, TID, screenshot) in the orders table
+-- Supabase Dashboard -> SQL Editor -> New query -> paste all of this -> Run.
+-- Running it again is safe. No changes are made to existing orders/products.
 --
--- Kyun zaroori hai:
---  * Pehle advance payment ki TID, payment ka tareeqa (JazzCash/EasyPaisa...) aur screenshot ka link order ke saath save nahi hota tha,
---    is liye admin me order ke saath nazar nahi aata tha.
---  * Yeh file orders table me 5 nayi columns jorti hai (agar pehle se hon to kuch nahi karti) aur ek function save_order_details()
---    banati hai jo order place hone ke foran baad website call karti hai.
---  * Function sirf usi order ko, sahi code + sahi phone number ke saath, aur sirf pehle 2 ghante me, sirf ek baar bhar sakta hai.
---    Koi dusra kisi purane order ki details badal nahi sakta.
+-- Why it is needed:
+--  * Previously the advance payment TID, the payment method (JazzCash/EasyPaisa...) and the screenshot link were not saved with the order,
+--    so they did not show up next to the order in the admin.
+--  * This file adds 5 new columns to the orders table (does nothing if they already exist) and creates a function save_order_details()
+--    which the website calls right after an order is placed.
+--  * The function can fill in only that order, with the correct code + correct phone number, only within the first 2 hours, and only once.
+--    Nobody else can change the details of an older order.
 
 alter table public.orders add column if not exists email         text;
 alter table public.orders add column if not exists city          text;
 alter table public.orders add column if not exists payment_via   text;   -- JazzCash / EasyPaisa / SadaPay / Other
 alter table public.orders add column if not exists payment_tid   text;   -- transaction ID
-alter table public.orders add column if not exists payment_proof text;   -- screenshot ka path (storage: payment-proofs)
+alter table public.orders add column if not exists payment_proof text;   -- screenshot path (storage: payment-proofs)
 
 create or replace function public.save_order_details(
   p_code  text,

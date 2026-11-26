@@ -1,50 +1,50 @@
 # AhmaMart — Payment setup (COD + online gateway)
 
-Website ab teen tareeqe support karti hai. Checkout ke "Payment" step par customer chunta hai:
+The website now supports three payment methods. At the "Payment" step of checkout, the customer chooses one:
 
-| Tareeqa | Kab dikhta hai | Setup |
+| Method | When it is shown | Setup |
 |---|---|---|
-| 📲 Advance (JazzCash / EasyPaisa / SadaPay) | hamesha | pehle se chal raha hai |
-| 💵 Cash on Delivery | sirf chhote orders par (default **Rs. 3,000** tak) | neeche Step 1 |
-| 💳 Online (PayFast: card + JazzCash + EasyPaisa) | jab gateway on ho | neeche Step 2 — **merchant account chahiye** |
+| 📲 Advance (JazzCash / EasyPaisa / SadaPay) | always | already working |
+| 💵 Cash on Delivery | only on small orders (up to **Rs. 3,000** by default) | Step 1 below |
+| 💳 Online (PayFast: card + JazzCash + EasyPaisa) | when the gateway is turned on | Step 2 below — **needs a merchant account** |
 
-## Step 1 — COD (5 minute)
+## Step 1 — COD (5 minutes)
 
-1. Supabase → **SQL Editor** → `supabase-payment-methods.sql` paste karke **Run**.
-   Yeh orders table me `payment_method`, `payment_status`, `payment_ref` columns aur `place_order_v2()` function banata hai.
-2. COD ki limit badalni ho to **do jagah** badlein (dono same hon):
-   - `supabase-payment-methods.sql` me `cod_max` (phir SQL dobara Run)
-   - `app.js` me `PAYMENT.cod.maxTotal`
-3. COD band karna ho: `app.js` me `PAYMENT.cod.enabled = false`.
+1. Supabase → **SQL Editor** → paste `supabase-payment-methods.sql` and click **Run**.
+   This creates the `payment_method`, `payment_status` and `payment_ref` columns in the orders table, and the `place_order_v2()` function.
+2. To change the COD limit, change it in **two places** (both must be the same):
+   - `cod_max` in `supabase-payment-methods.sql` (then Run the SQL again)
+   - `PAYMENT.cod.maxTotal` in `app.js`
+3. To turn COD off: set `PAYMENT.cod.enabled = false` in `app.js`.
 
-SQL run kiye baghair bhi COD chalta hai (order save hota hai aur address ke shuru me `[COD - cash on delivery]` likha aata hai), lekin limit sirf browser me lagti hai. SQL run karne se limit server par bhi lagti hai.
+COD also works without running the SQL (the order is saved and `[COD - cash on delivery]` is written at the start of the address), but then the limit is enforced only in the browser. Running the SQL enforces the limit on the server as well.
 
-Admin → Orders me har order ke total ke neeche 💵 COD / 📲 Advance / 💳 Online · paid dikhta hai.
+In Admin → Orders, below each order's total you will see 💵 COD / 📲 Advance / 💳 Online · paid.
 
 ## Step 2 — Online gateway (PayFast)
 
-> **Yeh hissa abhi untested hai.** Iske liye PayFast (APPS) ka merchant account aur uski Merchant ID + Secured Key chahiye — woh mere paas nahi hain. Pehle **sandbox** par test karein, phir live karein.
+> **This part is still untested.** It needs a PayFast (APPS) merchant account and its Merchant ID + Secured Key — I do not have those. Test on the **sandbox** first, then go live.
 
-1. PayFast merchant account banwayen (gopayfast.com) aur sandbox credentials + integration guide len. Ek hi integration se card, JazzCash aur EasyPaisa teeno chalte hain.
-2. Supabase CLI se login karke project link karein, phir secrets set karein:
+1. Get a PayFast merchant account (gopayfast.com) and ask for the sandbox credentials and the integration guide. A single integration covers card, JazzCash and EasyPaisa.
+2. Log in with the Supabase CLI and link the project, then set the secrets:
    ```
    supabase secrets set PAYFAST_MERCHANT_ID=xxxx PAYFAST_SECURED_KEY=xxxx PAYFAST_MERCHANT_NAME=AhmaMart \
-     SITE_URL=https://aapka-domain.pk \
+     SITE_URL=https://your-domain.pk \
      PAYFAST_WEBHOOK_URL=https://wfdedrzkqtndnqulvpos.supabase.co/functions/v1/payfast-webhook
    ```
-   (`PAYFAST_BASE` na dein to sandbox `https://ipguat.apps.net.pk` use hota hai. Live par PayFast ka diya hua live host set karein.)
-3. Dono functions deploy karein (`--no-verify-jwt` zaroori hai, kyun ke website publishable key use karti hai aur PayFast ka server login nahi karta):
+   (If you do not set `PAYFAST_BASE`, the sandbox `https://ipguat.apps.net.pk` is used. For live, set the live host that PayFast gives you.)
+3. Deploy both functions (`--no-verify-jwt` is required, because the website uses the publishable key and PayFast's server does not log in):
    ```
    supabase functions deploy payfast-create --no-verify-jwt
    supabase functions deploy payfast-webhook --no-verify-jwt
    ```
-4. `app.js` me `PAYMENT.gateway.enabled = true` karein.
-5. Sandbox me ek test order karein. Check karein ke order `payment_status = paid` ho jata hai.
-   **Webhook ka `validation_hash` formula** (`payfast-webhook/index.ts`) PayFast ki guide se match karwa lein. Agar match na hua to function kuch bhi "paid" mark nahi karega (safe), aur aap admin se manually confirm kar sakte hain.
-6. Live jane se pehle `PAYFAST_BASE` aur credentials live wale set karein.
+4. Set `PAYMENT.gateway.enabled = true` in `app.js`.
+5. Place a test order on the sandbox. Check that the order becomes `payment_status = paid`.
+   Make the **webhook's `validation_hash` formula** (`payfast-webhook/index.ts`) match PayFast's guide. If it does not match, the function will not mark anything as "paid" (this is safe), and you can confirm payments manually from the admin.
+6. Before going live, set `PAYFAST_BASE` and the credentials to the live ones.
 
-### Kaise kaam karta hai
-- Order pehle `payment_status = unpaid` se save hota hai. Rakam hamesha database se aati hai, browser se nahi.
-- `payfast-create` PayFast se token leta hai aur customer ko PayFast ke payment page par bhejta hai.
-- Sirf `payfast-webhook` (PayFast server ki taraf se) order ko `paid` karta hai. Customer ka wapas aana (`?pay=success`) sirf ek message dikhata hai.
-- Agar customer payment adhoori chhor de, order `unpaid` rehta hai. Admin use cancel kar sakta hai.
+### How it works
+- The order is first saved with `payment_status = unpaid`. The amount always comes from the database, never from the browser.
+- `payfast-create` gets a token from PayFast and sends the customer to PayFast's payment page.
+- Only `payfast-webhook` (called by PayFast's server) marks the order as `paid`. When the customer returns to the site (`?pay=success`), it only shows a message.
+- If the customer abandons the payment halfway, the order stays `unpaid`. The admin can cancel it.
