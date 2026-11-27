@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en-PK">
+<head>
+<meta charset="UTF-8">
+<script>/* theme: applied before first paint so there is no white flash */(function(){try{var t=localStorage.getItem("ahma_theme");if(t!=="dark"&&t!=="light")t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+ <title>Return request | AhmaMart</title>
+ <meta name="description" content="Request a return for your AhmaMart order.">
+ <meta name="robots" content="noindex, nofollow, noarchive">
+ <meta name="googlebot" content="noindex, nofollow">
+ <meta name="author" content="AhmaMart">
+ <meta name="language" content="English">
+ <meta name="geo.region" content="PK-PB">
+ <meta name="geo.placename" content="Kasur, Punjab, Pakistan">
+<script>
+/* Google Analytics + Meta Pixel. Events are queued right away; the heavy tracking scripts load after the page is ready (or on first touch). */
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-082HB3GNF1');
+!function(f,n){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[]}(window);
+fbq('init','2605006919930259');fbq('track','PageView');
+(function(){var done=0;function add(s){var t=document.createElement('script');t.async=true;t.src=s;document.head.appendChild(t)}
+function go(){if(done)return;done=1;add('https://www.googletagmanager.com/gtag/js?id=G-082HB3GNF1');add('https://connect.facebook.net/en_US/fbevents.js')}
+['pointerdown','keydown','scroll','touchstart'].forEach(function(e){addEventListener(e,go,{once:true,passive:true})});
+addEventListener('load',function(){setTimeout(go,1500)});})();
+</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2605006919930259&ev=PageView&noscript=1"></noscript>
+<link rel="preconnect" href="https://wfdedrzkqtndnqulvpos.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script>
+/* SPEED: start loading the store data (categories, products, photos, variants) immediately, in parallel with the scripts.
+   app.js picks the result up (window.__ahmaPre). If it fails or a customer/admin is signed in, app.js loads the data the normal way. */
+(function(){try{
+ if(!window.fetch)return;
+ for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&k.indexOf('-auth-token')>0)return;}
+ var U='https://wfdedrzkqtndnqulvpos.supabase.co/rest/v1/',K='sb_publishable_zbw6qV6FQARxUcuWi9vtrw_brjtRecp',H={apikey:K,Authorization:'Bearer '+K,Accept:'application/json'};
+ var g=function(t,o){return fetch(U+t+'?select=*&order='+o,{headers:H}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:d||{message:'error'}}})})};
+ window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
+}catch(e){}})();
+</script>
+<link rel="stylesheet" href="style.css?v=20261127b">
+<script src="theme.js?v=20261127b" defer></script>
+</head>
+<body class="inpage" data-page="returns">
+
+<header class="hdr hx">
+  <div class="hx-main">
+    <a class="brand" href="index.html" aria-label="AhmaMart home"><img class="brand-logo" src="logo-wordmark.webp" decoding="async" alt="AhmaMart" width="95" height="54"></a>
+    <div class="search">
+      <input id="searchInput" type="search" placeholder="Search products on AhmaMart..." aria-label="Search products" autocomplete="off">
+      <button class="sbtn" type="button" aria-label="Search" onclick="document.getElementById('searchInput').focus()"></button>
+    </div>
+    <div class="hx-side">
+      <button class="hx-link" id="trackBtn" type="button"><span class="hx-ic" aria-hidden="true">📦</span><span class="hx-tx"><small>Where is my parcel?</small>Track order</span></button>
+      <button class="hx-link" id="myOrdersBtn" type="button"><span class="hx-ic" aria-hidden="true">🧾</span><span class="hx-tx"><small>Your purchases</small>My orders</span></button>
+      <div class="hx-acct"><span class="hx-ic" aria-hidden="true">👤</span><span class="hx-tx"><small id="acctSmall">Welcome</small><a id="accountLink" href="login.html">Sign in / Register</a></span><button class="hx-out" id="logoutLink" type="button" style="display:none">Log out</button></div>
+      <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    </div>
+  </div>
+  <div class="hx-nav">
+    <button class="hx-all" id="catMenuBtn" type="button" aria-expanded="false" aria-controls="catMenu"><span class="hx-burger" aria-hidden="true"></span><span>All Categories</span><span class="hx-car" aria-hidden="true"></span></button>
+    <div class="chips" id="chips"></div>
+    <div class="catmenu" id="catMenu" hidden></div>
+  </div>
+</header>
+
+<section class="wrap" id="pageView" style="display:block"><div class="pg"><nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a><span>›</span><span class="cur">Return request</span></nav>
+<div class="rt" id="retApp"><noscript><p>Please enable JavaScript to submit a return request, or contact us on WhatsApp at 0329 6063123.</p></noscript></div></div></section>
+<main class="wrap hero-wrap home-only" id="top">
+  <div class="slider" id="slider">
+    <div class="slides" id="slides">
+      <a class="slide s1" href="#clearanceProducts"><span class="art3d a-bag" aria-hidden="true"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="f ft"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f bk"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bm"></i><i class="hd h1"></i><i class="hd h2"></i><i class="hd h3"></i><i class="hd h4"></i><i class="hd h5"></i><i class="hd h6"></i></i><i class="o3 coin" style="--x:-135px;--y:-120px;--z:80px;--w:42px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:125px;--y:-20px;--z:70px;--w:30px;--d:0.7s;--t:4.3s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-120px;--y:70px;--z:-60px;--w:26px;--d:1.4s;--t:5.0s"><b><u>★</u></b></i><i class="o3 spk" style="--x:115px;--y:-150px;--z:40px;--w:26px;--d:0.2s;--t:2.2s"><b>✦</b></i><i class="o3 spk" style="--x:-100px;--y:-170px;--z:-30px;--w:20px;--d:0.9s;--t:2.9s"><b>✦</b></i><i class="o3 spk" style="--x:135px;--y:80px;--z:60px;--w:18px;--d:1.4s;--t:3.4s"><b>✦</b></i></i></i></span><span class="pill">AHMAMART DEALS</span><h2>Everyday finds at smart prices</h2><p>Browse selected offers and save on products you use every day.</p><span class="go">Shop deals ›</span></a>
+      <a class="slide s2" href="#featuredProducts"><span class="art3d a-card sway" aria-hidden="true" style="--bx:-6deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="cx c2"><i class="cf"></i><i class="cb"></i></i><i class="cx c1"><i class="cf"><b class="nm">Ahma<span>Mart</span></b><b class="chip"></b><b class="wave"></b><b class="sub">JazzCash · EasyPaisa</b></i><i class="cb"><b class="strp"></b><b class="sig"></b></i></i></i><i class="o3 coin" style="--x:-125px;--y:-110px;--z:90px;--w:40px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-100px;--z:60px;--w:28px;--d:0.8s;--t:4.4s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-110px;--y:95px;--z:-70px;--w:28px;--d:1.5s;--t:5.1s"><b><u>★</u></b></i><i class="o3 spk" style="--x:120px;--y:100px;--z:50px;--w:24px;--d:0.3s;--t:2.3s"><b>✦</b></i><i class="o3 spk" style="--x:-60px;--y:-160px;--z:30px;--w:20px;--d:1s;--t:3s"><b>✦</b></i></i></i></span><span class="pill">EASY PAYMENT</span><h2>Pay in advance or on delivery</h2><p>Pay in advance with JazzCash or EasyPaisa, or choose Cash on Delivery on small orders.</p><span class="go">Start shopping ›</span></a>
+      <a class="slide s3" href="#allProducts"><span class="art3d a-gift" aria-hidden="true" style="--bx:-14deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="gift"><i class="body"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f bm"></i></i><i class="lid"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i></i><i class="bow"><i class="pl"><i class="lp l"></i><i class="lp r"></i><i class="kn"></i></i><i class="pl pl2"><i class="lp l"></i><i class="lp r"></i><i class="kn kn2"></i></i></i></i></i><i class="o3 coin" style="--x:-135px;--y:-100px;--z:80px;--w:36px;--d:0.2s;--t:3.8000000000000003s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-30px;--z:70px;--w:28px;--d:1s;--t:4.6s"><b><u>★</u></b></i><i class="o3 spk" style="--x:110px;--y:-160px;--z:40px;--w:28px;--d:0s;--t:2s"><b>✦</b></i><i class="o3 spk" style="--x:-120px;--y:40px;--z:50px;--w:22px;--d:0.7s;--t:2.7s"><b>✦</b></i><i class="o3 spk" style="--x:100px;--y:100px;--z:-40px;--w:18px;--d:1.3s;--t:3.3s"><b>✦</b></i></i></i></span><span class="pill">NEW IN STORE</span><h2>Fresh arrivals, all in one place</h2><p>Shoes, clothing, gifts, home essentials and more.</p><span class="go">Browse all ›</span></a>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+  <aside class="userbox">
+    <h3>Welcome to AhmaMart</h3>
+    <p>Shop everyday essentials with simple ordering — pay in advance, or Cash on Delivery on small orders.</p>
+    <button type="button" class="ub-primary" onclick="document.getElementById('myOrdersBtn').click()">My orders</button>
+    <button type="button" class="ub-ghost" onclick="document.getElementById('trackBtn').click()">Track an order</button>
+    <ul class="ub-list"><li>💳 Advance payment or COD (small orders)</li><li>🚚 Delivery across Pakistan</li><li>💬 WhatsApp support</li><li>↩️ 3-day returns for damaged or wrong items</li></ul>
+  </aside>
+</main>
+
+<section class="wrap svc home-only" aria-label="Store benefits">
+  <div><em>💳</em><p style="margin:0"><b>Flexible payment</b><span>Advance pay, or COD on small orders</span></p></div>
+  <div><em>🚚</em><p style="margin:0"><b>Pakistan-wide delivery</b><span>Usually 2–5 business days</span></p></div>
+  <div><em>↩️</em><p style="margin:0"><b>Easy returns</b><span>Damaged or wrong items</span></p></div>
+  <div><em>💬</em><p style="margin:0"><b>WhatsApp support</b><span>Chat with our team</span></p></div>
+</section>
+
+<section class="cat-blocks home-only" id="catBlocks"></section>
+
+<section class="wrap home-only" id="clearanceProducts" style="display:none"><div class="deals"><div class="sec-head"><div><h2>⚡ Super Deals</h2><p>Reduced prices on selected products while stocks last.</p></div><a class="more" href="#allProducts">View all ›</a></div><div class="pgrid" id="saleGrid"></div></div></section>
+
+<section class="wrap home-only" id="featuredProducts"><div class="sec-head"><div><h2>Just for you</h2><p>Latest products available in our store.</p></div><a class="more" href="#allProducts">Shop all ›</a></div><div class="pgrid" id="featuredGrid"></div></section>
+
+<div class="wrap sec-head" id="allProducts"><div><h2>All products</h2><p>Browse by category or search for something specific.</p></div></div>
+<div class="cat-sections wrap" id="grid"></div>
+<div class="empty" id="emptyState" style="display:none">No products match your search.</div>
+
+<section class="wrap nl home-only"><div><h2>Get updates from AhmaMart</h2><p>New arrivals and special offers, straight to your inbox.</p></div><form class="newsletter-form" id="newsletterForm"><label for="newsletterEmail">Your email address</label><div><input id="newsletterEmail" type="email" placeholder="you@example.com" required><button type="submit">Sign me up</button></div><small id="newsletterMsg">By subscribing, you agree to receive occasional store updates.</small></form></section>
+
+<button type="button" id="toTop" aria-label="Back to top">↑</button>
+<nav class="bnav" aria-label="Quick navigation">
+  <a href="index.html"><b>🏠</b>Home</a>
+  <a href="index.html#catBlocks"><b>🗂️</b>Categories</a>
+  <button type="button" onclick="document.getElementById('myOrdersBtn').click()"><b>📦</b>Orders</button>
+  <button type="button" onclick="document.getElementById('cartBtn').click()"><b>🛒</b>Cart</button>
+  <a href="login.html" id="bnavAccount"><b>👤</b>Account</a>
+</nav>
+
+<footer class="foot">
+  <div class="foot-wrap">
+    <div class="foot-col">
+      <h4>Ahma<span style="color:var(--gold)">Mart</span></h4>
+      <div>Everyday essentials delivered across Pakistan.</div>
+      <div>📍 Usmanwala, Kasur, Punjab, Pakistan</div>
+      <div>📧 <a href="mailto:helloahmamar@gmail.com">helloahmamar@gmail.com</a></div>
+      <div>📞 <a href="tel:03296063123">0329 6063123</a></div>
+    </div>
+    <div class="foot-col">
+      <h4>Company</h4>
+      <a href="about.html">About Us</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contact.html">Contact Us</a>
+    </div>
+    <div class="foot-col">
+      <h4>Policies</h4>
+      <a href="shipping-policy.html">Shipping</a>
+      <a href="refund-policy.html">Return, Refund &amp; Cancellation</a>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+    </div>
+  </div>
+  <div class="foot-bottom">© <span id="footYear"></span> AhmaMart — Everyday Essentials.</div>
+</footer>
+
+<div class="modal-overlay" id="infoOverlay">
+  <div class="modal" style="max-width:560px">
+    <button class="mclose" id="infoClose">&times;</button>
+    <h3 id="infoTitle" style="margin-bottom:14px"></h3>
+    <div id="infoBody" style="color:var(--ink-soft);font-size:.9rem;line-height:1.75"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="cartDrawer">
+  <div class="drow"><h3>Your cart</h3><button class="mclose" style="position:static" id="cartCloseBtn">&times;</button></div>
+  <div class="dbody" id="cartBody"></div>
+  <div class="dfoot" id="cartFoot" style="display:none">
+    <div class="subrow"><span>Subtotal</span><span id="subtotal">Rs. 0</span></div>
+    <button class="btn" id="checkoutBtn">Checkout</button>
+  </div>
+</aside>
+
+<div class="modal-overlay" id="checkoutOverlay">
+  <div class="modal">
+    <button class="mclose" id="checkoutClose">&times;</button>
+    <h3 id="coTitle" style="margin-bottom:10px">Delivery details</h3>
+    <div class="steps" id="coSteps"><span class="on">1 Details</span><span>2 Payment</span><span>3 Receipt</span></div>
+    <div id="checkoutMsg"></div>
+    <form id="checkoutForm">
+      <div class="field"><label>Full name</label><input required name="name"></div>
+      <div class="field"><label>Phone number</label><input required name="phone" type="tel" autocomplete="tel" placeholder="03XXXXXXXXX"></div>
+      <div class="field"><label>Email address</label><input required name="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="field"><label id="cntLbl">Country <span class="req">*</span></label>
+        <button type="button" class="addr-pick" id="cntPick" aria-haspopup="dialog" aria-labelledby="cntLbl cntTxt"><span id="cntTxt">Pakistan</span><i aria-hidden="true">›</i></button></div>
+      <div class="field" id="addrPkField"><label id="addrPickLbl">Province / City / Area <span class="req">*</span></label>
+        <button type="button" class="addr-pick" id="addrPick" aria-haspopup="dialog" aria-labelledby="addrPickLbl addrPickTxt"><span class="ph" id="addrPickTxt">Select province / city / area</span><i aria-hidden="true">›</i></button></div>
+      <div id="addrIntl" hidden>
+        <div class="field"><label for="intlState">State / Province / Region</label><input id="intlState" autocomplete="address-level1" maxlength="80"></div>
+        <div class="field"><label for="intlCity">City <span class="req">*</span></label><input id="intlCity" autocomplete="address-level2" maxlength="80"></div>
+        <div class="field"><label for="intlZip">Postal / ZIP code</label><input id="intlZip" autocomplete="postal-code" maxlength="20"></div>
+        <p class="pi-n intl-note">Delivery outside Pakistan: we will contact you on WhatsApp to confirm the shipping charges and delivery time before dispatch. Payment is in advance only.</p>
+      </div>
+      <input type="hidden" name="city" id="addrCity">
+      <div class="field"><label>Home address <span class="req">*</span></label><textarea required name="address" placeholder="House no. / building / street / landmark"></textarea></div>
+      <button class="btn" type="submit">Continue to payment ›</button>
+    </form>
+    <div id="payStep" class="pay2" style="display:none">
+      <div class="pay-body">
+        <div class="pay-info" id="payInfo"></div>
+        <div id="pmList" role="radiogroup" aria-label="Payment method">
+          <div class="pay-sec" id="pmRecH">Recommended method(s)</div>
+          <div id="pmRec"></div>
+          <div class="pay-sec">Other Payment Methods</div>
+          <div id="pmOth"></div>
+        </div>
+      </div>
+      <div id="pmPark" hidden>
+        <div class="pm-adv" id="pmAdv" hidden>
+          <div class="ps-amount"><span>Amount to pay</span><b id="psAmt"></b><button type="button" class="copy" id="psCopyAmt">Copy</button></div>
+          <ol class="ps-steps"><li>Send the amount to the account below.</li><li>Enter the transaction ID (TID) from your payment SMS or app.</li><li>Attach your payment screenshot, then tap “I have paid” — your order is placed and your receipt is created.</li></ol>
+          <div id="psAccounts"></div>
+          <select id="psMethod" hidden aria-hidden="true" tabindex="-1"></select>
+          <div class="field"><label>Transaction ID (TID)</label><input id="psTid" placeholder="e.g. 1234567890" autocomplete="off" inputmode="text"></div>
+          <div class="field"><label>Payment screenshot <span style="color:var(--ae)">*</span></label>
+            <label class="shot" id="psShotBox"><input type="file" id="psShot" accept="image/*" hidden><img id="psShotPrev" alt="Screenshot preview" style="display:none"><span id="psShotTxt">📎 Tap to attach your payment screenshot</span></label></div>
+          <p class="pi-n">You can also send your payment screenshot on WhatsApp after the order.</p>
+        </div>
+      </div>
+      <div class="pay-foot">
+        <div id="psMsg"></div>
+        <div class="pay-sum"><span>Subtotal</span><b id="psSub"></b></div>
+        <div class="pay-sum tot"><span>Total Amount</span><b id="psTot"></b></div>
+        <button class="btn" id="psConfirm" type="button">I have paid — Place order</button>
+        <button class="link" id="psBack" type="button">← Edit delivery details</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay addr-ov" id="addrOverlay">
+  <div class="modal addr-sheet">
+    <div class="addr-head"><h3 id="addrTitle">Select address</h3><button class="mclose" id="addrClose" type="button">&times;</button></div>
+    <div class="addr-tabs" id="addrTabs" role="tablist" aria-label="Address steps"></div>
+    <div class="addr-search"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="addrSearch" type="search" placeholder="Search" autocomplete="off" aria-label="Search"></div>
+    <div id="addrMsg" role="status"></div>
+    <ul class="addr-list" id="addrList"></ul>
+  </div>
+</div>
+
+<div class="modal-overlay" id="failOverlay">
+  <div class="modal" style="max-width:420px">
+    <button class="mclose" id="failClose">&times;</button>
+    <div style="text-align:center;margin-bottom:12px"><div style="font-size:2.2rem">🙏</div><h3 style="margin-top:6px">We could not save your order automatically</h3></div>
+    <p style="font-size:.9rem;line-height:1.7;color:var(--ink-soft);margin:0 0 14px">Sorry for the trouble. Please tap the button below to send your order and payment details to us on WhatsApp. We will confirm your order manually — <b>please do not pay again</b>.</p>
+    <a class="btn" id="failWa" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;background:#25D366;margin-bottom:8px">💬 Send order on WhatsApp</a>
+    <div id="failDetail" style="font-size:.72rem;color:#999;word-break:break-word;margin:6px 0 10px"></div>
+    <button class="btn alt" id="failRetry" type="button" style="width:100%;margin-bottom:4px">Try placing the order again</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:400px">
+    <button class="mclose" id="confirmClose">&times;</button>
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:2.4rem;animation:bounceIn .6s ease both">🎉</div>
+      <h3 style="color:var(--pine);margin-top:6px">Order Placed!</h3>
+    </div>
+    <!-- Receipt card -->
+    <div id="receiptCard" style="border:1.5px dashed var(--gold);border-radius:12px;padding:16px;background:rgba(0,0,0,0.03);margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:1.1rem;font-weight:800;color:var(--pine)">🏪 AhmaMart</span>
+        <span style="font-size:.72rem;color:var(--ink-soft)" id="receiptDate"></span>
+      </div>
+      <div style="border-top:1px dashed var(--line);margin-bottom:10px;padding-top:10px">
+        <div style="font-size:.75rem;color:var(--ink-soft);margin-bottom:2px">Order Code</div>
+        <div style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:1.5rem;color:var(--gold);letter-spacing:2px;font-weight:700" id="confirmCode"></div>
+      </div>
+      <div id="receiptCustomer" style="font-size:.82rem;color:var(--ink-soft);margin-bottom:10px;line-height:1.7"></div>
+      <div style="border-top:1px dashed var(--line);padding-top:10px">
+        <div style="font-size:.75rem;font-weight:700;color:var(--ink-soft);margin-bottom:6px">ITEMS</div>
+        <div id="receiptItems" style="font-size:.83rem;line-height:2"></div>
+        <div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:.92rem">
+          <span>Total</span><span style="color:var(--pine)" id="receiptTotal"></span>
+        </div>
+      </div>
+      <div id="receiptStatus" style="margin-top:10px;background:var(--pine);color:#fff;border-radius:8px;padding:8px 12px;font-size:.8rem;font-weight:700;text-align:center">✅ Payment submitted — we will verify it and dispatch your order</div>
+    </div>
+    <div id="payInstr" class="payinstr"></div>
+    <a class="btn" id="sendOrderWa" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;background:#25D366;margin-bottom:8px">💬 Send receipt + payment screenshot on WhatsApp</a>
+    <p style="color:var(--ink-soft);font-size:.8rem;text-align:center;margin-bottom:12px">Keep this code safe — you need it to track your order</p>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="confirmDone" style="flex:1;background:var(--pine)">Done</button>
+      <button class="btn" id="downloadReceiptBtn" style="flex:1;background:var(--gold)">⬇ Receipt Photo Download</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="trackOverlay">
+  <div class="modal">
+    <button class="mclose" id="trackClose">&times;</button>
+    <h3 style="margin-bottom:16px">Track your order</h3>
+    <div id="trackMsg"></div>
+    <form id="trackForm">
+      <div class="field"><label>Order code</label><input required name="code" placeholder="USW-XXXXX"></div>
+      <div class="field"><label>Phone number</label><input required name="phone"></div>
+      <button class="btn" type="submit">Track order</button>
+    </form>
+    <div id="trackResult" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- My Orders (customer order history, remembered on this device) -->
+<div class="modal-overlay" id="myOrdersOverlay">
+  <div class="modal" style="max-width:520px">
+    <button class="mclose" id="myOrdersClose">&times;</button>
+    <h3 style="margin-bottom:6px">My orders</h3>
+    <p style="color:var(--ink-soft);font-size:.85rem;margin-bottom:14px">Enter your phone number — all orders placed with that number will appear here.</p>
+    <div id="myOrdersMsg"></div>
+    <form id="myOrdersForm" style="display:flex;gap:8px;margin-bottom:14px">
+      <input required name="phone" id="myOrdersPhone" placeholder="03XXXXXXXXX" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+      <button class="btn" type="submit" style="width:auto;padding:0 16px">Show</button>
+    </form>
+    <div id="myOrdersList"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminRoot">
+  <div id="loginScreen" class="loginwrap">
+    <div class="logincard">
+      <h3 style="margin-bottom:18px">Ahma<span style="color:var(--gold)">Mart</span> Admin</h3>
+      <div id="loginMsg"></div>
+      <form id="loginForm">
+        <div class="field"><label>Admin email</label><input name="u" type="email" required></div>
+        <div class="field"><label>Password</label><input name="p" type="password" required></div>
+        <button class="btn" type="submit">Log in</button>
+      </form>
+      
+      <button class="link" style="margin-top:10px" id="backToStore">← Back to store</button>
+    </div>
+  </div>
+  <div id="adminShell" class="ashell" style="display:none">
+    <aside class="aside">
+      <div class="brand"><img class="brand-logo" src="logo-wordmark.webp" decoding="async" alt="AhmaMart" width="62" height="35"></div>
+      <div class="nitem on" data-tab="dash">Dashboard</div>
+      <div class="nitem" data-tab="prod">Products</div>
+      <div class="nitem" data-tab="cat">Categories</div>
+      <div class="nitem" data-tab="ord">Orders</div>
+      <div class="nitem" data-tab="pay">Payment proofs</div>
+      <div class="nitem" data-tab="cust">Customers</div>
+      <div class="nitem" data-tab="subs">Subscribers</div>
+      <div class="nitem" style="margin-top:auto" id="adminLogout">Log out</div>
+      <div class="nitem" id="adminExit">← Exit to store</div>
+    </aside>
+    <main class="amain">
+      <section id="tab-dash"><div class="topb"><h2>Dashboard</h2><button class="addp" type="button" id="diagBtn">Run connection check</button></div><div id="diagBox"></div><div class="stats" id="statGrid" style="margin-top:16px"></div>
+        <h3 style="font-size:1rem;margin-bottom:10px">Low stock</h3><table><thead><tr><th>Product</th><th>Stock</th></tr></thead><tbody id="lowStockBody"></tbody></table></section>
+      <section id="tab-prod" style="display:none">
+        <div class="topb"><h2>Products</h2><button class="addp" id="newProdBtn">+ Add product</button></div>
+        <div class="pa-tools"><div id="prodSummary" class="pa-sum"></div><input type="search" id="prodSearch" class="pa-search" placeholder="Search product name…" aria-label="Search products" autocomplete="off"></div>
+        <div id="prodChips" class="pa-chips" role="group" aria-label="Filter by category"></div>
+        <div id="prodGroups" class="pa-groups"></div>
+      </section>
+      <section id="tab-cat" style="display:none">
+        <h2 style="margin-bottom:16px">Categories</h2>
+        <form id="catForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-width:900px;margin-bottom:16px;align-items:center">
+          <input name="name" placeholder="Category name (e.g. Shoes)" required style="min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">
+          <select name="parent_id" id="catParentSelect" title="Parent category" style="min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)"><option value="">— Main category (top level) —</option></select>
+          <label class="cat-upload-label">Choose category picture <input name="image" type="file" accept="image/*" style="display:block;width:100%;font-size:.78rem;margin-top:6px"></label>
+          <button class="addp" type="submit">Add category</button>
+        </form>
+        <p style="font-size:.8rem;color:var(--ink-soft);margin:0 0 14px">Square or landscape images work best. To make a sub-category (e.g. Shoes inside Men), choose the parent in the middle box, or press “+ Sub-category” on a row. Sub-categories can have their own sub-categories too.</p>
+        <p style="font-size:.8rem;color:var(--ink-soft);margin:0 0 14px"><b>Re-order:</b> drag a row by its ⠿ handle — drop on the <b>top edge</b> of another row to place it before, the <b>bottom edge</b> to place it after, or the <b>middle</b> to put it inside that category. On phones use the ↑ ↓ ← → buttons or “Move…”. The same order is shown on the store.</p>
+        <table><thead><tr><th style="width:34px"></th><th>Picture</th><th>Name</th><th>Actions</th></tr></thead><tbody id="catBody"></tbody></table>
+      </section>
+      <section id="tab-ord" style="display:none">
+        <div class="ord-bar"><h2>Orders</h2><button type="button" class="sm" id="ordRefresh">↻ Refresh</button></div>
+        <div id="ordNew" class="ord-new" role="status" style="display:none"></div>
+        <input type="search" id="ordSearch" class="ord-search" placeholder="Search by order code, name, phone, address, product…" aria-label="Search orders">
+        <div id="ordFilters" class="ord-filters"></div>
+        <div id="ordBody" class="ord-list"></div>
+      </section>
+      <section id="tab-pay" style="display:none">
+        <h2 style="margin-bottom:6px">Payment proofs</h2>
+        <p style="font-size:.82rem;color:var(--ink-soft);margin:0 0 14px">Screenshots uploaded by customers (newest first). Match them with the phone number and TID shown on each card.</p>
+        <div id="proofGrid" class="proofgrid"></div>
+      </section>
+      <section id="tab-cust" style="display:none">
+        <h2 style="margin-bottom:16px">Customers</h2>
+        <table><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Last order</th><th></th></tr></thead><tbody id="custBody"></tbody></table>
+      </section>
+      <section id="tab-subs" style="display:none">
+        <div class="topb"><h2>Newsletter subscribers</h2><button class="addp" type="button" id="subsExport">Download CSV</button></div>
+        <table><thead><tr><th>Email</th><th>Subscribed</th><th></th></tr></thead><tbody id="subsBody"></tbody></table>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Move category -->
+<div class="modal-overlay" id="catMoveModal">
+  <div class="modal" style="max-width:420px">
+    <button class="mclose" id="catMoveClose" type="button">&times;</button>
+    <h3 id="catMoveTitle" style="margin-bottom:14px">Move category</h3>
+    <div id="catMoveMsg"></div>
+    <form id="catMoveForm">
+      <input type="hidden" name="id">
+      <div class="field"><label>Put it inside</label><select name="parent_id" id="catMoveSelect"></select></div>
+      <div class="field"><label>Position</label><select id="catMovePos"></select></div>
+      <button class="btn" type="submit">Save</button>
+    </form>
+  </div>
+</div>
+
+<!-- Product editor -->
+<div class="modal-overlay" id="prodModal">
+  <div class="modal">
+    <button class="mclose" id="prodModalClose">&times;</button>
+    <h3 id="prodModalTitle" style="margin-bottom:14px">Add product</h3>
+    <div id="prodMsg"></div>
+    <form id="prodForm">
+      <input type="hidden" name="id">
+      <div class="field"><label>Name</label><input name="name" required></div>
+      <div class="field"><label>Description</label><textarea name="description"></textarea></div>
+      <div class="field"><label>Category</label><select name="category_id" id="catSelect"></select></div>
+      <div style="display:flex;gap:10px">
+        <div class="field" style="flex:1"><label>Price (Rs.)</label><input name="price" type="number" step="0.01" required></div>
+        <div class="field" style="flex:1"><label>Compare-at price</label><input name="compare_at_price" type="number" step="0.01"></div>
+      </div>
+      <div class="field"><label>Stock</label><input name="stock" type="number" min="0" required><small id="stockNote" style="display:none;color:var(--ink-soft);font-size:.75rem">Stock = total of the variants below.</small></div>
+      <div class="field var-admin" id="varSection">
+        <label>Variants — Size / Colour (optional)</label>
+        <p class="var-help">Write the option name and its values separated by commas (e.g. Size: S, M, L). Then press <b>Generate variants</b> and enter the stock for each variant. A product without variants uses the Stock field above.</p>
+        <div class="var-optrow"><input id="varName1" placeholder="Option 1 (Size)"><input id="varVals1" placeholder="S, M, L, XL"></div>
+        <div class="var-optrow"><input id="varName2" placeholder="Option 2 (Colour)"><input id="varVals2" placeholder="Red, Blue, Black"></div>
+        <div class="var-optrow"><input id="varName3" placeholder="Option 3"><input id="varVals3" placeholder="values"></div>
+        <button type="button" class="sm" id="varGen">Generate variants</button>
+        <table class="var-table" id="varTable" style="display:none"><thead><tr><th>Variant</th><th>Stock</th><th></th></tr></thead><tbody id="varBody"></tbody></table>
+      </div>
+
+      <!-- Image section -->
+      <div class="field">
+        <label>Product Image</label>
+        <div class="img-tabs">
+          <button type="button" class="img-tab on" id="imgTabUpload" onclick="switchImgTab('upload')">📁 Upload</button>
+          <button type="button" class="img-tab" id="imgTabUrl" onclick="switchImgTab('url')">🔗 From URL</button>
+        </div>
+
+        <!-- Upload panel -->
+        <div id="imgPanelUpload">
+          <div id="imgPreviewWrap" class="img-preview-wrap" style="display:none">
+            <img id="imgPreview" class="img-preview" src="" alt="Preview">
+            <button type="button" class="img-remove-btn" onclick="clearImage()" title="Remove">✕</button>
+          </div>
+          <div class="img-upload-area" id="imgUploadArea">
+            <input type="file" id="imgFileInput" accept="image/*">
+            <div class="img-upload-icon">🖼️</div>
+            <p class="img-upload-hint">Click or drag & drop<br><span style="font-size:.75rem;color:var(--gold)">JPG, PNG, WEBP — resized automatically</span></p>
+          </div>
+        </div>
+
+        <!-- URL panel -->
+        <div id="imgPanelUrl" style="display:none">
+          <input name="_img_url_input" id="imgUrlInput" placeholder="https://example.com/image.jpg"
+            style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:8px">
+          <div id="imgUrlPreviewWrap" class="img-preview-wrap" style="display:none">
+            <img id="imgUrlPreview" class="img-preview" src="" alt="Preview" style="max-height:160px;aspect-ratio:auto">
+          </div>
+          <button type="button" onclick="previewUrl()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.82rem;font-weight:600;cursor:pointer">Preview</button>
+        </div>
+      </div>
+
+      <input type="hidden" name="image_url" id="imgFinalUrl">
+
+      <div class="field">
+        <label>More photos (optional)</label>
+        <div id="extraThumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+        <input type="file" id="extraFileInput" accept="image/*" multiple style="font-size:.85rem">
+        <p style="font-size:.75rem;color:var(--ink-soft);margin-top:4px">Add as many photos as you like — they are shown in addition to the cover photo.</p>
+      </div>
+
+      <button class="btn" type="submit">Save product</button>
+    </form>
+  </div>
+</div>
+
+<!-- Product detail (customer-facing) -->
+<div class="modal-overlay" id="productDetailOverlay">
+  <div class="modal pd-modal">
+    <button class="mclose" id="pdClose">&times;</button>
+    <div class="pd-img" id="pdImg"></div>
+    <div id="pdThumbs" style="display:flex;gap:8px;margin:-6px 0 14px;overflow-x:auto"></div>
+    <div class="pd-cat" id="pdCat"></div>
+    <div class="pd-name" id="pdName"></div>
+    <div><span class="pd-price" id="pdPrice"></span><span class="pd-compare" id="pdCompare"></span></div>
+    <div class="pd-stock" id="pdStock"></div>
+    <div class="pd-desc" id="pdDesc"></div>
+    <button class="btn" id="pdAddBtn" style="width:100%">Add to cart</button>
+  </div>
+</div>
+
+<!-- Customer detail (admin-facing order history) -->
+<div class="modal-overlay" id="custDetailOverlay">
+  <div class="modal" style="max-width:600px">
+    <button class="mclose" id="custDetailClose">&times;</button>
+    <h3 id="custDetailName" style="margin-bottom:2px"></h3>
+    <p id="custDetailPhone" style="color:var(--ink-soft);font-size:.85rem;margin-bottom:14px"></p>
+    <table><thead><tr><th>Code</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody id="custDetailBody"></tbody></table>
+  </div>
+</div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="app.js?v=20261127b"></script>
+<script defer src="reviews.js?v=20261127b"></script>
+<script defer src="a11y.js?v=20261127b"></script>
+<script defer src="returns.js?v=20261127b"></script>
+
+<!-- WhatsApp Button -->
+<a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Hello%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AI%20have%20a%20question%20about%20ordering%20from%20your%20store.%20Here%20are%20my%20details%3A%0A%0A%F0%9F%91%A4%20Name%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20name%20or%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0APlease%20let%20me%20know%3A%0A1%29%20Is%20the%20product%20in%20stock%3F%0A2%29%20The%20price%20and%20delivery%20charges%0A3%29%20The%20delivery%20time%20to%20my%20city%0A4%29%20Payment%20options%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMy%20other%20question%3A%20%0A%0AI%20look%20forward%20to%20your%20reply.%20Thank%20you%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">
+  <span class="wa-label">Chat with us 💬</span>
+  <span class="wa-btn">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.02 3C8.84 3 3 8.83 3 16c0 2.3.6 4.55 1.75 6.53L3 29l6.65-1.74A13 13 0 0 0 16.02 29C23.2 29 29 23.17 29 16S23.2 3 16.02 3zm0 23.8c-1.98 0-3.9-.53-5.58-1.53l-.4-.24-3.95 1.03 1.05-3.85-.26-.4A10.77 10.77 0 0 1 5.2 16c0-5.96 4.86-10.8 10.82-10.8 5.97 0 10.8 4.84 10.8 10.8s-4.83 10.8-10.8 10.8zm5.93-8.08c-.32-.16-1.92-.95-2.22-1.06-.3-.1-.52-.16-.73.16-.22.33-.84 1.06-1.03 1.28-.19.22-.38.24-.7.08-.33-.16-1.38-.51-2.62-1.62-.97-.86-1.62-1.93-1.8-2.25-.2-.33-.02-.5.14-.66.15-.14.33-.38.5-.57.16-.19.22-.33.33-.55.1-.22.05-.4-.03-.57-.08-.16-.73-1.77-1-2.42-.27-.63-.54-.55-.73-.56h-.62c-.22 0-.57.08-.87.4-.3.33-1.14 1.12-1.14 2.72 0 1.6 1.17 3.15 1.33 3.37.16.22 2.3 3.5 5.56 4.92.78.34 1.38.54 1.85.69.78.25 1.5.21 2.06.13.63-.1 1.92-.79 2.19-1.55.27-.76.27-1.4.19-1.55-.08-.14-.3-.22-.62-.38z"/></svg>
+    <span class="wa-badge"></span>
+  </span>
+</a>
+<script>
+if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
