@@ -56,7 +56,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261126a">
+<link rel="stylesheet" href="style.css?v=20261126b">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -126,22 +126,29 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  ]
 }
 </script>
-<script src="theme.js?v=20261126a" defer></script>
+<script src="theme.js?v=20261126b" defer></script>
 </head>
 <body class="inpage" data-page="info" data-info="faq">
 
-<div class="topbar"><div class="wrap"><span class="tb-msg">🚚 Delivery across Pakistan · COD on small orders</span><div class="tb-links"><button class="link" id="trackBtn" type="button">Track order</button><button class="link" id="myOrdersBtn" type="button">My orders</button><a class="link" id="accountLink" href="login.html">Login</a><button class="link" id="logoutLink" type="button" style="display:none">Log out</button></div></div></div>
-
-<header class="hdr">
-  <div class="hdr-row">
+<header class="hdr hx">
+  <div class="hx-main">
     <a class="brand" href="index.html" aria-label="AhmaMart home"><img class="brand-logo" src="logo-wordmark.webp" decoding="async" alt="AhmaMart" width="95" height="54"></a>
     <div class="search">
       <input id="searchInput" type="search" placeholder="Search products on AhmaMart..." aria-label="Search products" autocomplete="off">
       <button class="sbtn" type="button" aria-label="Search" onclick="document.getElementById('searchInput').focus()"></button>
     </div>
-    <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    <div class="hx-side">
+      <button class="hx-link" id="trackBtn" type="button"><span class="hx-ic" aria-hidden="true">📦</span><span class="hx-tx"><small>Where is my parcel?</small>Track order</span></button>
+      <button class="hx-link" id="myOrdersBtn" type="button"><span class="hx-ic" aria-hidden="true">🧾</span><span class="hx-tx"><small>Your purchases</small>My orders</span></button>
+      <div class="hx-acct"><span class="hx-ic" aria-hidden="true">👤</span><span class="hx-tx"><small id="acctSmall">Welcome</small><a id="accountLink" href="login.html">Sign in / Register</a></span><button class="hx-out" id="logoutLink" type="button" style="display:none">Log out</button></div>
+      <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    </div>
   </div>
-  <div class="chips" id="chips"></div>
+  <div class="hx-nav">
+    <button class="hx-all" id="catMenuBtn" type="button" aria-expanded="false" aria-controls="catMenu"><span class="hx-burger" aria-hidden="true"></span><span>All Categories</span><span class="hx-car" aria-hidden="true"></span></button>
+    <div class="chips" id="chips"></div>
+    <div class="catmenu" id="catMenu" hidden></div>
+  </div>
 </header>
 
 <section class="wrap" id="pageView" style="display:block"><div class="pg"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" id="ppBack">‹ Back</button><span>|</span><a href="index.html">Home</a><span>›</span><span class="cur">Frequently Asked Questions</span></nav><div class="ip"><aside class="ip-nav"><h4>Company</h4><a href="about.html" class="">About Us</a><a href="faq.html" class="on">Frequently Asked Questions</a><a href="contact.html" class="">Contact Us</a><h4>Policies</h4><a href="shipping-policy.html" class="">Shipping Policy</a><a href="refund-policy.html" class="">Return, Refund &amp; Cancellation</a><a href="privacy-policy.html" class="">Privacy Policy</a><a href="terms.html" class="">Terms of Service</a></aside><article class="ip-body"><h1>Frequently Asked Questions</h1>
@@ -570,9 +577,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="app.js?v=20261126a"></script>
-<script defer src="reviews.js?v=20261126a"></script>
-<script defer src="a11y.js?v=20261126a"></script>
+<script defer src="app.js?v=20261126b"></script>
+<script defer src="reviews.js?v=20261126b"></script>
+<script defer src="a11y.js?v=20261126b"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Hello%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AI%20have%20a%20question%20about%20ordering%20from%20your%20store.%20Here%20are%20my%20details%3A%0A%0A%F0%9F%91%A4%20Name%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20name%20or%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0APlease%20let%20me%20know%3A%0A1%29%20Is%20the%20product%20in%20stock%3F%0A2%29%20The%20price%20and%20delivery%20charges%0A3%29%20The%20delivery%20time%20to%20my%20city%0A4%29%20Payment%20options%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMy%20other%20question%3A%20%0A%0AI%20look%20forward%20to%20your%20reply.%20Thank%20you%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">

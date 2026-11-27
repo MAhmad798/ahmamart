@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
- <title>AhmaMart Pakistan | Shoes, Clothing, Gifts &amp; Home Essentials</title>
- <meta name="description" content="Shop everyday products at AhmaMart Pakistan, including women’s, men’s and kids’ shoes, clothing, jewellery, gifts, toys, home decor, health essentials and electronics. Advance payment or COD on small orders, delivery across Pakistan.">
+ <title>Online Shopping in Pakistan | AhmaMart – Shoes, Clothing, Gifts</title>
+ <meta name="description" content="Online shopping in Pakistan: shoes, clothing, jewellery, gifts, toys, home decor &amp; more. Pay with JazzCash/EasyPaisa or Cash on Delivery on small orders. Delivery across Pakistan.">
  <link rel="canonical" href="https://ahmamart.com/">
  <meta name="robots" content="index, follow, max-image-preview:large">
  <meta name="googlebot" content="index, follow">
@@ -20,8 +20,8 @@
  <meta name="geo.placename" content="Kasur, Punjab, Pakistan">
  <meta property="og:type" content="website">
  <meta property="og:site_name" content="AhmaMart">
- <meta property="og:title" content="AhmaMart Pakistan | Shoes, Clothing, Gifts &amp; Home Essentials">
- <meta property="og:description" content="Shop everyday products at AhmaMart Pakistan, including women’s, men’s and kids’ shoes, clothing, jewellery, gifts, toys, home decor, health essentials and electronics. Advance payment or COD on small orders, delivery across Pakistan.">
+ <meta property="og:title" content="Online Shopping in Pakistan | AhmaMart – Shoes, Clothing, Gifts">
+ <meta property="og:description" content="Online shopping in Pakistan: shoes, clothing, jewellery, gifts, toys, home decor &amp; more. Pay with JazzCash/EasyPaisa or Cash on Delivery on small orders. Delivery across Pakistan.">
  <meta property="og:locale" content="en_PK">
  <meta property="og:url" content="https://ahmamart.com/">
  <meta property="og:image" content="https://ahmamart.com/og-image.jpg">
@@ -30,8 +30,8 @@
  <meta property="og:image:alt" content="AhmaMart Pakistan online store">
  <meta name="twitter:image" content="https://ahmamart.com/og-image.jpg">
  <meta name="twitter:card" content="summary_large_image">
- <meta name="twitter:title" content="AhmaMart Pakistan | Shoes, Clothing, Gifts &amp; Home Essentials">
- <meta name="twitter:description" content="Shop everyday products at AhmaMart Pakistan, including women’s, men’s and kids’ shoes, clothing, jewellery, gifts, toys, home decor, health essentials and electronics. Advance payment or COD on small orders, delivery across Pakistan.">
+ <meta name="twitter:title" content="Online Shopping in Pakistan | AhmaMart – Shoes, Clothing, Gifts">
+ <meta name="twitter:description" content="Online shopping in Pakistan: shoes, clothing, jewellery, gifts, toys, home decor &amp; more. Pay with JazzCash/EasyPaisa or Cash on Delivery on small orders. Delivery across Pakistan.">
 <script>
 /* Google Analytics + Meta Pixel. Events are queued right away; the heavy tracking scripts load after the page is ready (or on first touch). */
 window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-082HB3GNF1');
@@ -56,7 +56,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  window.__ahmaPre=Promise.all([g('categories','id.asc'),g('products','id.asc'),g('product_images','sort_order.asc'),g('product_variants','sort_order.asc,id.asc')]).catch(function(){return null});
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261126a">
+<link rel="stylesheet" href="style.css?v=20261126b">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -139,6 +139,7 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
    "url": "https://ahmamart.com/",
    "name": "AhmaMart",
    "inLanguage": "en-PK",
+   "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": "https://ahmamart.com/?q={search_term_string}" }, "query-input": "required name=search_term_string" },
    "publisher": {
     "@id": "https://ahmamart.com/#store"
    }
@@ -146,22 +147,29 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
  ]
 }
 </script>
-<script src="theme.js?v=20261126a" defer></script>
+<script src="theme.js?v=20261126b" defer></script>
 </head>
 <body data-page="home">
 
-<div class="topbar"><div class="wrap"><span class="tb-msg">🚚 Delivery across Pakistan · COD on small orders</span><div class="tb-links"><button class="link" id="trackBtn" type="button">Track order</button><button class="link" id="myOrdersBtn" type="button">My orders</button><a class="link" id="accountLink" href="login.html">Login</a><button class="link" id="logoutLink" type="button" style="display:none">Log out</button></div></div></div>
-
-<header class="hdr">
-  <div class="hdr-row">
+<header class="hdr hx">
+  <div class="hx-main">
     <a class="brand" href="index.html" aria-label="AhmaMart home"><img class="brand-logo" src="logo-wordmark.webp" decoding="async" alt="AhmaMart" width="95" height="54"></a>
     <div class="search">
       <input id="searchInput" type="search" placeholder="Search products on AhmaMart..." aria-label="Search products" autocomplete="off">
       <button class="sbtn" type="button" aria-label="Search" onclick="document.getElementById('searchInput').focus()"></button>
     </div>
-    <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    <div class="hx-side">
+      <button class="hx-link" id="trackBtn" type="button"><span class="hx-ic" aria-hidden="true">📦</span><span class="hx-tx"><small>Where is my parcel?</small>Track order</span></button>
+      <button class="hx-link" id="myOrdersBtn" type="button"><span class="hx-ic" aria-hidden="true">🧾</span><span class="hx-tx"><small>Your purchases</small>My orders</span></button>
+      <div class="hx-acct"><span class="hx-ic" aria-hidden="true">👤</span><span class="hx-tx"><small id="acctSmall">Welcome</small><a id="accountLink" href="login.html">Sign in / Register</a></span><button class="hx-out" id="logoutLink" type="button" style="display:none">Log out</button></div>
+      <div class="hact"><button class="iconbtn themebtn" id="themeBtn" data-theme-toggle type="button" aria-label="Switch to dark mode" aria-pressed="false"><span class="ti" aria-hidden="true">🌙</span></button><button class="iconbtn" id="cartBtn" type="button" aria-label="Open cart">🛒<span class="cartlbl">Cart</span><span class="badge" id="cartCount">0</span></button></div>
+    </div>
   </div>
-  <div class="chips" id="chips"></div>
+  <div class="hx-nav">
+    <button class="hx-all" id="catMenuBtn" type="button" aria-expanded="false" aria-controls="catMenu"><span class="hx-burger" aria-hidden="true"></span><span>All Categories</span><span class="hx-car" aria-hidden="true"></span></button>
+    <div class="chips" id="chips"></div>
+    <div class="catmenu" id="catMenu" hidden></div>
+  </div>
 </header>
 
 <section class="wrap" id="pageView" style="display:none"></section>
@@ -169,9 +177,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
   <h1 class="sr-only">AhmaMart Pakistan – Online shopping for shoes, clothing, gifts &amp; home essentials</h1>
   <div class="slider" id="slider">
     <div class="slides" id="slides">
-      <a class="slide s1" href="#clearanceProducts"><span class="art3d a-bag" aria-hidden="true"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="f ft"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f bk"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bm"></i><i class="hd h1"></i><i class="hd h2"></i><i class="hd h3"></i><i class="hd h4"></i><i class="hd h5"></i><i class="hd h6"></i></i><i class="o3 coin" style="--x:-135px;--y:-120px;--z:80px;--w:42px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:125px;--y:-20px;--z:70px;--w:30px;--d:0.7s;--t:4.3s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-120px;--y:70px;--z:-60px;--w:26px;--d:1.4s;--t:5.0s"><b><u>★</u></b></i><i class="o3 spk" style="--x:115px;--y:-150px;--z:40px;--w:26px;--d:0.2s;--t:2.2s"><b>✦</b></i><i class="o3 spk" style="--x:-100px;--y:-170px;--z:-30px;--w:20px;--d:0.9s;--t:2.9s"><b>✦</b></i><i class="o3 spk" style="--x:135px;--y:80px;--z:60px;--w:18px;--d:1.4s;--t:3.4s"><b>✦</b></i></i></i></span><span class="pill">AHMAMART DEALS</span><h2>Everyday finds at smart prices</h2><p>Browse selected offers and save on products you use every day.</p><span class="go">Shop deals ›</span></a>
-      <a class="slide s2" href="#featuredProducts"><span class="art3d a-card sway" aria-hidden="true" style="--bx:-6deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="cx c2"><i class="cf"></i><i class="cb"></i></i><i class="cx c1"><i class="cf"><b class="nm">Ahma<span>Mart</span></b><b class="chip"></b><b class="wave"></b><b class="sub">JazzCash · EasyPaisa</b></i><i class="cb"><b class="strp"></b><b class="sig"></b></i></i></i><i class="o3 coin" style="--x:-125px;--y:-110px;--z:90px;--w:40px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-100px;--z:60px;--w:28px;--d:0.8s;--t:4.4s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-110px;--y:95px;--z:-70px;--w:28px;--d:1.5s;--t:5.1s"><b><u>★</u></b></i><i class="o3 spk" style="--x:120px;--y:100px;--z:50px;--w:24px;--d:0.3s;--t:2.3s"><b>✦</b></i><i class="o3 spk" style="--x:-60px;--y:-160px;--z:30px;--w:20px;--d:1s;--t:3s"><b>✦</b></i></i></i></span><span class="pill">EASY PAYMENT</span><h2>Pay in advance or on delivery</h2><p>Pay in advance with JazzCash or EasyPaisa, or choose Cash on Delivery on small orders.</p><span class="go">Start shopping ›</span></a>
-      <a class="slide s3" href="#allProducts"><span class="art3d a-gift" aria-hidden="true" style="--bx:-14deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="gift"><i class="body"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f bm"></i></i><i class="lid"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i></i><i class="bow"><i class="pl"><i class="lp l"></i><i class="lp r"></i><i class="kn"></i></i><i class="pl pl2"><i class="lp l"></i><i class="lp r"></i><i class="kn kn2"></i></i></i></i></i><i class="o3 coin" style="--x:-135px;--y:-100px;--z:80px;--w:36px;--d:0.2s;--t:3.8000000000000003s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-30px;--z:70px;--w:28px;--d:1s;--t:4.6s"><b><u>★</u></b></i><i class="o3 spk" style="--x:110px;--y:-160px;--z:40px;--w:28px;--d:0s;--t:2s"><b>✦</b></i><i class="o3 spk" style="--x:-120px;--y:40px;--z:50px;--w:22px;--d:0.7s;--t:2.7s"><b>✦</b></i><i class="o3 spk" style="--x:100px;--y:100px;--z:-40px;--w:18px;--d:1.3s;--t:3.3s"><b>✦</b></i></i></i></span><span class="pill">NEW IN STORE</span><h2>Fresh arrivals, all in one place</h2><p>Shoes, clothing, gifts, home essentials and more.</p><span class="go">Browse all ›</span></a>
+      <a class="slide s1" href="#clearanceProducts"><span class="art3d a-bag" aria-hidden="true"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="f ft"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f bk"><b class="band"></b><b class="logo">A</b><b class="lbl">AhmaMart</b></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bm"></i><i class="hd h1"></i><i class="hd h2"></i><i class="hd h3"></i><i class="hd h4"></i><i class="hd h5"></i><i class="hd h6"></i></i><i class="o3 coin" style="--x:-135px;--y:-120px;--z:80px;--w:42px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:125px;--y:-20px;--z:70px;--w:30px;--d:0.7s;--t:4.3s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-120px;--y:70px;--z:-60px;--w:26px;--d:1.4s;--t:5.0s"><b><u>★</u></b></i><i class="o3 spk" style="--x:115px;--y:-150px;--z:40px;--w:26px;--d:0.2s;--t:2.2s"><b>✦</b></i><i class="o3 spk" style="--x:-100px;--y:-170px;--z:-30px;--w:20px;--d:0.9s;--t:2.9s"><b>✦</b></i><i class="o3 spk" style="--x:135px;--y:80px;--z:60px;--w:18px;--d:1.4s;--t:3.4s"><b>✦</b></i></i></i></span><span class="pill">AHMAMART DEALS</span><h2>Everyday finds at smart prices</h2><p>Browse selected offers and save on products you use every day.</p><span class="go">Shop deals ›</span><span class="ticks"><i>Delivery across Pakistan</i><i>COD on small orders</i><i>3-day returns</i></span></a>
+      <a class="slide s2" href="#featuredProducts"><span class="art3d a-card sway" aria-hidden="true" style="--bx:-6deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="cx c2"><i class="cf"></i><i class="cb"></i></i><i class="cx c1"><i class="cf"><b class="nm">Ahma<span>Mart</span></b><b class="chip"></b><b class="wave"></b><b class="sub">JazzCash · EasyPaisa</b></i><i class="cb"><b class="strp"></b><b class="sig"></b></i></i></i><i class="o3 coin" style="--x:-125px;--y:-110px;--z:90px;--w:40px;--d:0s;--t:3.6s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-100px;--z:60px;--w:28px;--d:0.8s;--t:4.4s"><b><u>★</u></b></i><i class="o3 coin" style="--x:-110px;--y:95px;--z:-70px;--w:28px;--d:1.5s;--t:5.1s"><b><u>★</u></b></i><i class="o3 spk" style="--x:120px;--y:100px;--z:50px;--w:24px;--d:0.3s;--t:2.3s"><b>✦</b></i><i class="o3 spk" style="--x:-60px;--y:-160px;--z:30px;--w:20px;--d:1s;--t:3s"><b>✦</b></i></i></i></span><span class="pill">EASY PAYMENT</span><h2>Pay in advance or on delivery</h2><p>Pay in advance with JazzCash or EasyPaisa, or choose Cash on Delivery on small orders.</p><span class="go">Start shopping ›</span><span class="ticks"><i>Delivery across Pakistan</i><i>COD on small orders</i><i>3-day returns</i></span></a>
+      <a class="slide s3" href="#allProducts"><span class="art3d a-gift" aria-hidden="true" style="--bx:-14deg"><i class="gsh"></i><i class="fl"><i class="tl"><i class="sp"><i class="gift"><i class="body"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f bm"></i></i><i class="lid"><i class="f ft"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i></i><i class="bow"><i class="pl"><i class="lp l"></i><i class="lp r"></i><i class="kn"></i></i><i class="pl pl2"><i class="lp l"></i><i class="lp r"></i><i class="kn kn2"></i></i></i></i></i><i class="o3 coin" style="--x:-135px;--y:-100px;--z:80px;--w:36px;--d:0.2s;--t:3.8000000000000003s"><b><u>★</u></b></i><i class="o3 coin" style="--x:130px;--y:-30px;--z:70px;--w:28px;--d:1s;--t:4.6s"><b><u>★</u></b></i><i class="o3 spk" style="--x:110px;--y:-160px;--z:40px;--w:28px;--d:0s;--t:2s"><b>✦</b></i><i class="o3 spk" style="--x:-120px;--y:40px;--z:50px;--w:22px;--d:0.7s;--t:2.7s"><b>✦</b></i><i class="o3 spk" style="--x:100px;--y:100px;--z:-40px;--w:18px;--d:1.3s;--t:3.3s"><b>✦</b></i></i></i></span><span class="pill">NEW IN STORE</span><h2>Fresh arrivals, all in one place</h2><p>Shoes, clothing, gifts, home essentials and more.</p><span class="go">Browse all ›</span><span class="ticks"><i>Delivery across Pakistan</i><i>COD on small orders</i><i>3-day returns</i></span></a>
     </div>
     <div class="dots" id="dots"></div>
   </div>
@@ -200,6 +208,16 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 <div class="wrap sec-head" id="allProducts"><div><h2>All products</h2><p>Browse by category or search for something specific.</p></div></div>
 <div class="cat-sections wrap" id="grid"></div>
 <div class="empty" id="emptyState" style="display:none">No products match your search.</div>
+
+<section class="wrap seo-copy home-only" aria-labelledby="seoTitle">
+  <h2 id="seoTitle">Online shopping in Pakistan with AhmaMart</h2>
+  <p>AhmaMart is an online store based in Usmanwala, Kasur, Punjab, delivering everyday products across Pakistan — shoes, clothing, jewellery, gifts, toys, home decor, health essentials and electronics. Pick what you need, check out in a minute and we confirm and dispatch your order.</p>
+  <h3>How you can pay</h3>
+  <p>Pay in advance with JazzCash, EasyPaisa or SadaPay, or choose Cash on Delivery on small orders. The total is always shown before you confirm, and you can order as a guest without creating an account.</p>
+  <h3>Delivery and returns</h3>
+  <p>Most orders arrive within 2–5 business days. If an item is damaged or incorrect, tell us within 3 days of delivery and we will arrange a replacement or refund. Read our <a href="shipping-policy.html">shipping policy</a> and <a href="refund-policy.html">return, refund &amp; cancellation policy</a>, or find quick answers in the <a href="faq.html">FAQ</a>. You can also <a href="contact.html">contact us</a> on WhatsApp, phone or email.</p>
+  <div id="seoCats"></div>
+</section>
 
 <section class="wrap nl home-only"><div><h2>Get updates from AhmaMart</h2><p>New arrivals and special offers, straight to your inbox.</p></div><form class="newsletter-form" id="newsletterForm"><label for="newsletterEmail">Your email address</label><div><input id="newsletterEmail" type="email" placeholder="you@example.com" required><button type="submit">Sign me up</button></div><small id="newsletterMsg">By subscribing, you agree to receive occasional store updates.</small></form></section>
 
@@ -586,9 +604,9 @@ addEventListener('load',function(){setTimeout(go,1500)});})();
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="app.js?v=20261126a"></script>
-<script defer src="reviews.js?v=20261126a"></script>
-<script defer src="a11y.js?v=20261126a"></script>
+<script defer src="app.js?v=20261126b"></script>
+<script defer src="reviews.js?v=20261126b"></script>
+<script defer src="a11y.js?v=20261126b"></script>
 
 <!-- WhatsApp Button -->
 <a class="wa-float" id="waFloat" href="https://wa.me/923296063123?text=Hello%20AhmaMart%20Team%21%20%F0%9F%91%8B%0A%0AI%20have%20a%20question%20about%20ordering%20from%20your%20store.%20Here%20are%20my%20details%3A%0A%0A%F0%9F%91%A4%20Name%3A%20%0A%F0%9F%93%9E%20Phone%20number%3A%20%0A%F0%9F%93%8D%20City%3A%20%0A%F0%9F%9B%8D%EF%B8%8F%20Product%20name%20or%20link%3A%20%0A%F0%9F%94%A2%20Quantity%3A%20%0A%0APlease%20let%20me%20know%3A%0A1%29%20Is%20the%20product%20in%20stock%3F%0A2%29%20The%20price%20and%20delivery%20charges%0A3%29%20The%20delivery%20time%20to%20my%20city%0A4%29%20Payment%20options%20%28JazzCash%20%2F%20EasyPaisa%20%2F%20SadaPay%20%2F%20Cash%20on%20Delivery%29%0A%0AMy%20other%20question%3A%20%0A%0AI%20look%20forward%20to%20your%20reply.%20Thank%20you%21%20%F0%9F%99%8F" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">

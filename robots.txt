@@ -3,6 +3,8 @@ Allow: /
 Disallow: /login.html
 Disallow: /_source/
 Disallow: /supabase/
+Disallow: /api/
+Disallow: /404.html
 
 Sitemap: https://ahmamart.com/sitemap.xml
 Sitemap: https://ahmamart.com/sitemap-products.xml
