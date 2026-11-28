@@ -28,7 +28,7 @@
       'Hafizabad': s('Hafizabad, Pindi Bhattian'),
       'Jhang': s('Jhang, Ahmadpur Sial, Athara Hazari, Shorkot'),
       'Jhelum': s('Jhelum, Dina, Pind Dadan Khan, Sohawa'),
-      'Kasur': s('Kasur, Chunian, Pattoki, Kot Radha Kishan, Mandi Usman Wala, Khudian, Raja Jang, Ganda Singh Wala, Changa Manga, Phool Nagar, Bhai Pheru, Habibabad'),
+      'Kasur': s('Kasur, Chunian, Pattoki, Kot Radha Kishan, Khudian, Raja Jang, Ganda Singh Wala, Changa Manga, Phool Nagar, Bhai Pheru, Habibabad'),
       'Khanewal': s('Khanewal, Jahanian, Kabirwala, Mian Channu'),
       'Khushab': s('Khushab, Jauharabad, Noorpur Thal, Quaidabad'),
       'Lahore': s('Allama Iqbal Town, Anarkali, Askari, Badami Bagh, Bahria Town, Baghbanpura, Barkat Market, Cantt, Chauburji, DHA Phase 1, DHA Phase 2, DHA Phase 3, DHA Phase 4, DHA Phase 5, DHA Phase 6, DHA Phase 7, DHA Phase 8, DHA Phase 9 Prism, EME Society, Faisal Town, Ferozepur Road, Garden Town, Gulberg, Gulshan-e-Ravi, Harbanspura, Ichhra, Iqbal Town, Jallo Park, Johar Town, Kahna, Lake City, Liberty, Mall Road, Manawan, Mian Mir, Model Town, Mozang, Mughalpura, Muslim Town, Nawab Town, Nishtar Colony, Pak Arab Society, Raiwind, Raiwind Road, Ravi Road, Sabzazar, Samanabad, Sanda, Shadbagh, Shadman, Shahdara, Shalimar, Sundar, Thokar Niaz Baig, Township, Valencia Town, Wahdat Colony, Wahdat Road, Walled City, Wapda Town, Yakki Gate'),

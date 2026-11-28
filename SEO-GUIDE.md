@@ -13,9 +13,9 @@ This update makes the website technically complete for Google; the checklist bel
 
 ## Do this once (about 30 minutes) — this is what actually gets you listed
 1. **Google Search Console** (search.google.com/search-console): add `https://ahmamart.com`, verify it, then submit both sitemaps: `sitemap.xml` and `sitemap-products.xml`. Use "URL inspection → Request indexing" for the home page and your best 5–10 products.
-2. **Google Business Profile** (business.google.com): create a profile for "AhmaMart", Usmanwala, Kasur, with phone, WhatsApp, website, categories and photos. This is what makes you appear for searches like "online store Kasur".
+2. **Google Business Profile** (business.google.com): create a profile for "AhmaMart", Kasur, with phone, WhatsApp, website, categories and photos. This is what makes you appear for searches like "online store Kasur".
 3. **Bing Webmaster Tools** (bing.com/webmasters): import your site from Search Console and submit the sitemaps.
-4. Put the **same name, phone and address** (AhmaMart, Usmanwala, Kasur, Punjab, 0329 6063123) on your Facebook / Instagram / TikTok pages, and link to ahmamart.com from each profile and from your WhatsApp Business profile.
+4. Put the **same name, phone and address** (AhmaMart, Kasur, Punjab, 0329 6063123) on your Facebook / Instagram / TikTok pages, and link to ahmamart.com from each profile and from your WhatsApp Business profile.
 
 ## Keep doing (this is what moves you up)
 - **Write a real description for every product** (at least 2–3 sentences: material, size, colour, use). A product with no description has almost nothing for Google to rank. Use the words people type, e.g. "women's running shoes", "gift box for kids".
