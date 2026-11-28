@@ -245,6 +245,8 @@ begin
       'delivered_at',    v_o->>'delivered_at',
       'deadline',        v_deadline,
       'subtotal',        v_o->'subtotal',
+      'shipping_fee',    coalesce(v_o->'shipping_fee', '0'::jsonb),   -- only present once supabase-delivery.sql is installed
+      'grand_total',     coalesce(v_o->'grand_total', v_o->'subtotal'),
       'payment_method',  v_o->>'payment_method',
       'items',           public._ret_items(v_o->'items')
     )
